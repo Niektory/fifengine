@@ -593,9 +593,11 @@ namespace FIFE {
 							double tilt = 0.0;
 							double zoom = 1.0;
 							double rotation = 0.0;
+							double ztoy = 0.0;
 							cameraElement->QueryDoubleAttribute("tilt", &tilt);
 							cameraElement->QueryDoubleAttribute("zoom", &zoom);
 							cameraElement->QueryDoubleAttribute("rotation", &rotation);
+							cameraElement->QueryDoubleAttribute("ztoy", &ztoy);
 
 							const std::string* viewport = cameraElement->Attribute(std::string("viewport"));
 
@@ -646,6 +648,7 @@ namespace FIFE {
 								cam->setRotation(rotation);
 								cam->setTilt(tilt);
 								cam->setZoom(zoom);
+								cam->setZtoY(ztoy);
 
                                 // active instance renderer for camera
                                 InstanceRenderer* instanceRenderer = InstanceRenderer::getInstance(cam);

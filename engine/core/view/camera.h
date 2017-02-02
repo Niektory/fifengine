@@ -121,6 +121,10 @@ namespace FIFE {
 		 */
 		double getZoom() const;
 
+		void setZtoY(double ztoy);
+
+		double getZtoY() const;
+
 		/** Sets screen cell image dimensions.
 		 * Cell image dimension is basically width and height of a bitmap, that covers
 		 * one cell in the layer where camera is bind
@@ -415,6 +419,7 @@ namespace FIFE {
 		double m_tilt;
 		double m_rotation;
 		double m_zoom;
+		double m_ztoy;
 		Location m_location;
 		ScreenPoint m_cur_origo;
 		Rect m_viewport;

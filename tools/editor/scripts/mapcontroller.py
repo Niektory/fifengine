@@ -242,6 +242,9 @@ class MapController(object):
 			return [instances[0], ]
 
 		return instances
+		
+	def getAllInstances(self):
+		return self._layer.getInstances()
 
 	def getUndoManager(self):
 		""" Returns undo manager """
@@ -386,7 +389,7 @@ class MapController(object):
 				undocall = cbwa(self.moveInstances, [i], moveBy, exact, i.getLocation(), i.getFacingLocation())
 				redocall = cbwa(self.moveInstances, [i], moveBy, exact, i.getLocation(), i.getFacingLocation())
 				undoobject = undomanager.UndoObject(undocall, redocall, "Moved instance")
-				self._undomanager.addAction(undoobject)
+				#self._undomanager.addAction(undoobject)
 				i.setLocation(loc)
 				i.setFacingLocation(f)
 				
@@ -402,12 +405,12 @@ class MapController(object):
 	def rotateCounterClockwise(self):
 		""" Rotates map counterclockwise by 90 degrees """
 		currot = self._camera.getRotation()
-		self._camera.setRotation((currot + 270) % 360)
+		self._camera.setRotation((currot + 300) % 360)
 		
 	def rotateClockwise(self):
 		""" Rotates map clockwise by 90 degrees """
 		currot = self._camera.getRotation()
-		self._camera.setRotation((currot + 90) % 360)
+		self._camera.setRotation((currot + 60) % 360)
 		
 	def getZoom(self):
 		""" Returns camera zoom """

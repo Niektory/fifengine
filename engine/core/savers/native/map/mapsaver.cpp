@@ -330,6 +330,7 @@ namespace FIFE {
                 cameraElement->SetDoubleAttribute("zoom", (*iter)->getZoom());
                 cameraElement->SetDoubleAttribute("tilt", (*iter)->getTilt());
                 cameraElement->SetDoubleAttribute("rotation", (*iter)->getRotation());
+				cameraElement->SetDoubleAttribute("ztoy", (*iter)->getZtoY());
                 
                 Rect viewport = (*iter)->getViewPort();
                 std::ostringstream viewportString;

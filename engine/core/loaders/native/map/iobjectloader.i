@@ -22,6 +22,7 @@
 %{
 #include "loaders/native/map/iobjectloader.h"
 #include "loaders/native/map/ianimationloader.h"
+#include "loaders/native/map/objectloader.h"
 %}
 
 namespace FIFE {
@@ -29,4 +30,5 @@ namespace FIFE {
 }
 
 %include "loaders/native/map/iobjectloader.h"
+%include "loaders/native/map/objectloader.h"
 

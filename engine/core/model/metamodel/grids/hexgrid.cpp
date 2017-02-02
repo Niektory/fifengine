@@ -77,9 +77,9 @@ namespace FIFE {
 		if (ABS(x) <= 1 && ABS(y) <= 1) {
 			if (y == 0) {
 				return true;
-			} else if (curpos.y & 1) {
-				if (x >= 0) return true;
-			} else if (x <= 0) return true;
+			} else if (x == 0) {
+				return true;
+			} else if (x == -y) return true;
         }
 		return false;
 	}
@@ -108,13 +108,7 @@ namespace FIFE {
 	double HexGrid::getXZigzagOffset(double y) {
 		// each uneven row has shifted coordinate of 0.5 horizontally
 		// shift has to be gradual on vertical axis
-		double ay = ABS(y);
-		int32_t i_layer_y = static_cast<int32_t>(ay);
-		double offset = ay - static_cast<double>(i_layer_y);
-		if ((i_layer_y % 2) == 1) {
-			offset = 1 - offset;
-		}
-		return HEX_TO_EDGE * offset;
+		return HEX_TO_EDGE * y;
 	}
 
 	ExactModelCoordinate HexGrid::toMapCoordinates(const ExactModelCoordinate& layer_coords) {
@@ -122,7 +116,7 @@ namespace FIFE {
 		tranformed_coords.x += getXZigzagOffset(layer_coords.y);
 		tranformed_coords.y *= VERTICAL_MULTIP;
 		ExactModelCoordinate result = m_matrix * tranformed_coords;
-		FL_DBG(_log, LMsg("layercoords ") << layer_coords << " converted to map: " << result);
+		//FL_DBG(_log, LMsg("layercoords ") << layer_coords << " converted to map: " << result);
 		return result;
 	}
 
@@ -130,7 +124,7 @@ namespace FIFE {
 		ExactModelCoordinate layer_coords = m_inverse_matrix * map_coord;
 		layer_coords.y /= VERTICAL_MULTIP;
 		layer_coords.x -= getXZigzagOffset(layer_coords.y);
-		FL_DBG(_log, LMsg("mapcoords ") << map_coord << " converted to layer: " << layer_coords);
+		//FL_DBG(_log, LMsg("mapcoords ") << map_coord << " converted to layer: " << layer_coords);
 		return layer_coords;
 	}
 
@@ -142,7 +136,7 @@ namespace FIFE {
 		// approximate conversion using squares instead of hexes
 		if( static_cast<int32_t>(round(elc.y)) & 1 )
 			elc.x -= 0.5;
-		ExactModelCoordinate lc = ExactModelCoordinate(round(elc.x), round(elc.y), round(elc.z));
+ 		ExactModelCoordinate lc = ExactModelCoordinate(round(elc.x), round(elc.y), round(elc.z));
 
 		int32_t x = static_cast<int32_t>(lc.x);
 		int32_t y = static_cast<int32_t>(lc.y);
@@ -176,6 +170,10 @@ namespace FIFE {
 			x += ddx;
 			y += ddy;
 		}
+		if( y >= 0 )
+			x -= y / 2;
+		else
+			x -= (y - 1) / 2;
 
 		return ModelCoordinate(x,y,z);
 	}
@@ -186,10 +184,7 @@ namespace FIFE {
 		double x = static_cast<double>(cell.x);
 		double y = static_cast<double>(cell.y);
 		double horiz_shift = 0;
-		if (cell.y % 2 != 0) {
-			horiz_shift = HEX_TO_EDGE;
-			FL_DBG(_log, "on uneven row");
-		}
+		horiz_shift = HEX_TO_EDGE * cell.y;
 		double tx, ty;
 
 		#define ADD_PT(_x, _y) vtx.push_back(ExactModelCoordinate(_x, _y));

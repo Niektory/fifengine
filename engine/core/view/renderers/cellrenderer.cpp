@@ -215,27 +215,36 @@ namespace FIFE {
 					Path path = route->getPath();
 					if (!path.empty()) {
 						Path::iterator pit = path.begin();
+						ModelCoordinate pos1 = (*pit).getLayerCoordinates();
+						ModelCoordinate pos2;
+						ExactModelCoordinate posm;
+						//pos1.z = cache->getCell(pos1)->getLayerCoordinates().z;
+						ScreenPoint pts = cam->toScreenCoordinates(cg->toMapCoordinates(pos1));
+						Point pt1(pts.x, pts.y);
+						Point pt2;
+						Point ptm;
+						++pit;
 						for (; pit != path.end(); ++pit) {
-							if ((*pit).getLayer() != layer) {
-								continue;
-							}
-							std::vector<ExactModelCoordinate> vertices;
-							cg->getVertices(vertices, (*pit).getLayerCoordinates());
-							std::vector<ExactModelCoordinate>::const_iterator it = vertices.begin();
-							int32_t halfind = vertices.size() / 2;
-							ScreenPoint firstpt = cam->toScreenCoordinates(cg->toMapCoordinates(*it));
-							Point pt1(firstpt.x, firstpt.y);
-							Point pt2;
-							++it;
-							for (; it != vertices.end(); it++) {
-								ScreenPoint pts = cam->toScreenCoordinates(cg->toMapCoordinates(*it));
-								pt2.x = pts.x;
-								pt2.y = pts.y;
-								m_renderbackend->drawLine(pt1, pt2, m_pathColor.r, m_pathColor.g, m_pathColor.b);
-								pt1 = pt2;
-							}
-							m_renderbackend->drawLine(pt2, Point(firstpt.x, firstpt.y), m_pathColor.r, m_pathColor.g, m_pathColor.b);
+							pos2 = (*pit).getLayerCoordinates();
+							//pos2.z = cache->getCell(pos2)->getLayerCoordinates().z;
+							posm.x = (cg->toMapCoordinates(pos1).x + cg->toMapCoordinates(pos2).x) / 2;
+							posm.y = (cg->toMapCoordinates(pos1).y + cg->toMapCoordinates(pos2).y) / 2;
+							if (pos1.z > pos2.z)
+								posm.z = cg->toMapCoordinates(pos1).z;
+							else
+								posm.z = cg->toMapCoordinates(pos2).z;
+							pts = cam->toScreenCoordinates(cg->toMapCoordinates(pos2));
+							pt2.x = pts.x;
+							pt2.y = pts.y;
+							pts = cam->toScreenCoordinates(posm);
+							ptm.x = pts.x;
+							ptm.y = pts.y;
+							m_renderbackend->drawLine(pt1, ptm, m_pathColor.r, m_pathColor.g, m_pathColor.b);
+							m_renderbackend->drawLine(ptm, pt2, m_pathColor.r, m_pathColor.g, m_pathColor.b);
+							pos1 = pos2;
+							pt1 = pt2;
 						}
+						//m_renderbackend->drawLine(pt2, Point(firstpt.x, firstpt.y), m_path_color.r, m_path_color.g, m_path_color.b);
 					}
 				}
 			}

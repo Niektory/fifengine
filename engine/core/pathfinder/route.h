@@ -222,7 +222,7 @@ namespace FIFE {
 		void setObject(Object* obj);
 
 		/** Returns the multi cell object.
-		 * @param obj A pointer to the multi cell object.
+		 * @return obj A pointer to the multi cell object.
 		 */
 		Object* getObject();
 

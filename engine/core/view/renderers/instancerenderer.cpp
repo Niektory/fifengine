@@ -517,7 +517,8 @@ namespace FIFE {
 		// create name
 		std::stringstream sts;
 		sts << vc.image.get()->getName() << "," << static_cast<uint32_t>(info.r) << "," <<
-			static_cast<uint32_t>(info.g) << "," << static_cast<uint32_t>(info.b) << "," << info.width;
+			static_cast<uint32_t>(info.g) << "," << static_cast<uint32_t>(info.b) << "," << info.width << "," <<
+			info.gap_left << "," << info.gap_right << "," << info.gap_top << "," << info.gap_bottom;
 		// search image
 		if (ImageManager::instance()->exists(sts.str())) {
 			info.outline = ImageManager::instance()->getPtr(sts.str());
@@ -553,11 +554,13 @@ namespace FIFE {
 				if (aboveThreshold(info.threshold, static_cast<int32_t>(a), prev_a)) {
 					if (a < prev_a) {
 						for (int32_t yy = y; yy < y + info.width; yy++) {
-							Image::putPixel(outline_surface, x, yy, info.r, info.g, info.b);
+							if (((y <= info.gap_top) || (y >= info.gap_bottom)) && ((x <= info.gap_left) || (x >= info.gap_right)))
+								Image::putPixel(outline_surface, x, yy, info.r, info.g, info.b);
 						}
 					} else {
 						for (int32_t yy = y - info.width; yy < y; yy++) {
-							Image::putPixel(outline_surface, x, yy, info.r, info.g, info.b);
+							if (((y <= info.gap_top) || (y >= info.gap_bottom)) && ((x <= info.gap_left) || (x >= info.gap_right)))
+								Image::putPixel(outline_surface, x, yy, info.r, info.g, info.b);
 						}
 					}
 				}
@@ -572,11 +575,13 @@ namespace FIFE {
 				if (aboveThreshold(info.threshold, static_cast<int32_t>(a), prev_a)) {
 					if (a < prev_a) {
 						for (int32_t xx = x; xx < x + info.width; xx++) {
-							Image::putPixel(outline_surface, xx, y, info.r, info.g, info.b);
+							if (((y <= info.gap_top) || (y >= info.gap_bottom)) && ((x <= info.gap_left) || (x >= info.gap_right)))
+								Image::putPixel(outline_surface, xx, y, info.r, info.g, info.b);
 						}
 					} else {
 						for (int32_t xx = x - info.width; xx < x; xx++) {
-							Image::putPixel(outline_surface, xx, y, info.r, info.g, info.b);
+							if (((y <= info.gap_top) || (y >= info.gap_bottom)) && ((x <= info.gap_left) || (x >= info.gap_right)))
+								Image::putPixel(outline_surface, xx, y, info.r, info.g, info.b);
 						}
 					}
 				}
@@ -680,13 +685,17 @@ namespace FIFE {
 		return info.overlay.get();
 	}
 
-	void InstanceRenderer::addOutlined(Instance* instance, int32_t r, int32_t g, int32_t b, int32_t width, int32_t threshold) {
+	void InstanceRenderer::addOutlined(Instance* instance, int32_t r, int32_t g, int32_t b, int32_t width, int32_t threshold, int32_t gap_left, int32_t gap_right, int32_t gap_top, int32_t gap_bottom) {
 		OutlineInfo newinfo(this);
 		newinfo.r = r;
 		newinfo.g = g;
 		newinfo.b = b;
 		newinfo.threshold = threshold;
 		newinfo.width = width;
+		newinfo.gap_left = gap_left;
+		newinfo.gap_right = gap_right;
+		newinfo.gap_top = gap_top;
+		newinfo.gap_bottom = gap_bottom;
 		newinfo.dirty = true;
 
 		// attempts to insert the element into the outline map
@@ -708,6 +717,10 @@ namespace FIFE {
 				info.g = g;
 				info.width = width;
 				info.threshold = threshold;
+				info.gap_left = gap_left;
+				info.gap_right = gap_right;
+				info.gap_top = gap_top;
+				info.gap_bottom = gap_bottom;
 				info.dirty = true;
 			}
 		} else {

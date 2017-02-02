@@ -43,6 +43,8 @@ namespace FIFE {
 		double getRotation() const;
 		void setZoom(double zoom);
 		double getZoom() const;
+		void setZtoY(double zoom);
+		double getZtoY() const;
 		void setLocation(Location location);
 		Location getLocation() const;
 		Location& getLocationRef();

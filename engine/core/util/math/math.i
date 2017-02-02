@@ -70,6 +70,8 @@ namespace FIFE {
 		static T Sqrt(T _val);
 		static T Tan(T _val);
 	};
+	
+	inline int32_t getAngleBetween(const Location& loc1, const Location& loc2);
 
 	typedef Math<float> Mathf;
 	typedef Math<double> Mathd;

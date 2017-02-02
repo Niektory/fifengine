@@ -287,15 +287,64 @@ namespace FIFE {
 	}
 
 	class InstanceDistanceSort {
-	public:
-		inline bool operator()(RenderItem* const & lhs, RenderItem* const & rhs) {
-			if (Mathd::Equal(lhs->screenpoint.z, rhs->screenpoint.z)) {
-				InstanceVisual* liv = lhs->instance->getVisual<InstanceVisual>();
-				InstanceVisual* riv = rhs->instance->getVisual<InstanceVisual>();
-				return liv->getStackPosition() < riv->getStackPosition();
+	private:
+		double xtox, xtoy, ytox, ytoy;
+ 	public:
+		InstanceDistanceSort(double rotation) {
+			if ((rotation >= 0) && (rotation <= 60)) {	// 30 deg
+				xtox = 0;
+				xtoy = -1;
+				ytox = 1;
+				ytoy = 0.5;				
 			}
-			return lhs->screenpoint.z < rhs->screenpoint.z;
+			if ((rotation >= 60) && (rotation <= 120)) {	// 90 deg
+				xtox = -1;
+				xtoy = -1;
+				ytox = 0.5;
+				ytoy = -0.5;				
+			}
+			if ((rotation >= 120) && (rotation <= 180)) {	// 150 deg
+				xtox = 0;
+				xtoy = -1;
+				ytox = -1;
+				ytoy = -0.5;				
+			}
+			if ((rotation >= 180) && (rotation <= 240)) {	// 210 deg
+				xtox = 0;
+				xtoy = 1;
+				ytox = -1;
+				ytoy = -0.5;				
+			}
+			if ((rotation >= 240) && (rotation <= 300)) {	// 270 deg
+				xtox = 1;
+				xtoy = 1;
+				ytox = -0.5;
+				ytoy = 0.5;				
+			}
+			if ((rotation >= 300) && (rotation <= 360)) {	// 330 deg
+				xtox = 0;
+				xtoy = 1;
+				ytox = 1;
+				ytoy = 0.5;				
+			}
 		}
+ 		inline bool operator()(RenderItem* const & lhs, RenderItem* const & rhs) {
+			ExactModelCoordinate lpos = lhs->instance->getLocation().getExactLayerCoordinates();
+			ExactModelCoordinate rpos = rhs->instance->getLocation().getExactLayerCoordinates();
+			lpos.x += lpos.y / 2;
+			rpos.x += rpos.y / 2;
+			InstanceVisual* liv = lhs->instance->getVisual<InstanceVisual>();
+			InstanceVisual* riv = rhs->instance->getVisual<InstanceVisual>();
+			if (ceil(static_cast<double>(xtox*lpos.x + ytox*lpos.y)) + ceil(static_cast<double>(xtoy*lpos.x + ytoy*lpos.y)) + floor(static_cast<double>(liv->getStackPosition() / 100)) ==
+				ceil(static_cast<double>(xtox*rpos.x + ytox*rpos.y)) + ceil(static_cast<double>(xtoy*rpos.x + ytoy*rpos.y)) + floor(static_cast<double>(riv->getStackPosition() / 100))) {
+				if (lpos.z == rpos.z) {
+					return liv->getStackPosition() % 100 < riv->getStackPosition() % 100;
+				}
+				return lpos.z < rpos.z;
+ 			}
+			return ceil(static_cast<double>(xtox*lpos.x + ytox*lpos.y)) + ceil(static_cast<double>(xtoy*lpos.x + ytoy*lpos.y)) + floor(static_cast<double>(liv->getStackPosition() / 100)) <
+			       ceil(static_cast<double>(xtox*rpos.x + ytox*rpos.y)) + ceil(static_cast<double>(xtoy*rpos.x + ytoy*rpos.y)) + floor(static_cast<double>(riv->getStackPosition() / 100));
+ 		}
 	};
 
 	void LayerCache::update(Camera::Transform transform, RenderList& renderlist) {
@@ -400,7 +449,7 @@ namespace FIFE {
 		}
 
 		if (m_need_sorting) {
-			InstanceDistanceSort ids;
+			InstanceDistanceSort ids(m_camera->getRotation());
 			std::stable_sort(renderlist.begin(), renderlist.end(), ids);
 		} else {
 			zmin -= 0.5;

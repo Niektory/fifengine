@@ -84,6 +84,7 @@ namespace FIFE {
 			m_tilt(0),
 			m_rotation(0),
 			m_zoom(1),
+			m_ztoy(0),
 			m_location(),
 			m_cur_origo(ScreenPoint(0,0,0)),
 			m_viewport(),
@@ -163,6 +164,18 @@ namespace FIFE {
 
 	double Camera::getZoom() const {
 		return m_zoom;
+	}
+
+	void Camera::setZtoY(double ztoy) {
+		if (!Mathd::Equal(m_ztoy, ztoy)) {
+			m_ztoy = ztoy;
+			updateMatrices();
+			m_need_update = true;
+		}
+	}
+
+	double Camera::getZtoY() const {
+		return m_ztoy;
 	}
 
 	void Camera::setCellImageDimensions(uint32_t width, uint32_t height) {
@@ -334,15 +347,17 @@ namespace FIFE {
 				m_matrix.applyTranslate( -pt.x *m_reference_scale,-pt.y *m_reference_scale, -pt.z*m_reference_scale);
 			}
 		}
-		scale = m_zoom;
-		m_matrix.applyScale(scale, scale, scale);
 		m_matrix.applyRotate(-m_rotation, 0.0, 0.0, 1.0);
 		m_matrix.applyRotate(-m_tilt, 1.0, 0.0, 0.0);
+		m_matrix.m9 = -m_ztoy;	// map z -> screen y height in pixels
+		scale = m_zoom;
+		m_matrix.applyScale(scale, scale, scale);
 		m_matrix.applyTranslate(+m_viewport.x+m_viewport.w/2, +m_viewport.y+m_viewport.h/2, 0);
 		m_inverse_matrix = m_matrix.inverse();
 
 		m_vs_matrix.applyRotate(-m_rotation, 0.0, 0.0, 1.0);
 		m_vs_matrix.applyRotate(-m_tilt, 1.0, 0.0, 0.0);
+		m_vs_matrix.m9 = -m_ztoy;	// z -> y height in pixels
 		m_vs_inverse_matrix = m_vs_matrix.inverse();
 
 		// calculate the screen<->virtual screen transformation
@@ -514,7 +529,7 @@ namespace FIFE {
 		instances.clear();
 		bool zoomed = !Mathd::Equal(m_zoom, 1.0);
 		bool special_alpha = alpha != 0;
-		cacheUpdate(&layer);
+		//cacheUpdate(&layer);
 		const RenderList& layer_instances = m_layer_to_instances[&layer];
 		RenderList::const_iterator instance_it = layer_instances.end();
 		while (instance_it != layer_instances.begin()) {

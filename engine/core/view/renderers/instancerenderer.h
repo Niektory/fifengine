@@ -60,7 +60,7 @@ namespace FIFE {
 
 		/** Marks given instance to be outlined with given parameters
 		 */
-		void addOutlined(Instance* instance, int32_t r, int32_t g, int32_t b, int32_t width, int32_t threshold = 1);
+		void addOutlined(Instance* instance, int32_t r, int32_t g, int32_t b, int32_t width, int32_t threshold = 1, int32_t gap_left = 0, int32_t gap_right = 0, int32_t gap_top = 0, int32_t gap_bottom = 0);
 
 		/** Marks given instance to be colored with given parameters
 		 */
@@ -169,6 +169,10 @@ namespace FIFE {
 			uint8_t b;
 			int32_t width;
 			int32_t threshold;
+			int32_t gap_left;
+			int32_t gap_right;
+			int32_t gap_top;
+			int32_t gap_bottom;
 			bool dirty;
 			ImagePtr outline;
 			Image* curimg;
