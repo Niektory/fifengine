@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2010 by the FIFE team                              *
- *   http://www.fifengine.net                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -39,10 +39,10 @@ static Logger _log(LM_EXCEPTION);
 	Exception::~Exception() throw() {}
 
 	const char* Exception::what() const throw() {
-		std::stringstream str;
+		return m_what.c_str();
+	}
 
-		str << "_[" << getTypeStr() << "]_ , " << getDescription() << " :: " << m_what;
-
-		return str.str().c_str();
+	void Exception::update() {
+		m_what = "_[" + getTypeStr() + "]_ , " + getDescription() + " :: " + m_what;
 	}
 }//FIFE

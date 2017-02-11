@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -70,20 +70,20 @@ namespace FIFE {
 
 			virtual int32_t getHeight() const;
 
+			virtual void setBoldStyle(bool style);
+			virtual void setItalicStyle(bool style);
+			virtual void setUnderlineStyle(bool style);
+			virtual void setStrikethroughStyle(bool style);
+			virtual int32_t getFontStyleMask() const;
 
 			virtual SDL_Surface *renderString(const std::string& text);
 
-			virtual void setColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 255);
+			virtual void setColor(uint8_t r,uint8_t g,uint8_t b, uint8_t a = 255);
 
 		protected:
-			TTF_Font *mFont;
+			TTF_Font* mFont;
 
-			int32_t mHeight;
-			int32_t mGlyphSpacing;
-			int32_t mRowSpacing;
-
-			std::string mFilename;
-			bool mAntiAlias;
+			int32_t mFontStyle;
 	};
 }
 

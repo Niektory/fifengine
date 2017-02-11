@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 # ####################################################################
-#  Copyright (C) 2005-2009 by the FIFE team
-#  http://www.fifengine.de
+#  Copyright (C) 2005-2017 by the FIFE team
+#  http://www.fifengine.net
 #  This file is part of FIFE.
 #
 #  FIFE is free software; you can redistribute it and/or
@@ -36,7 +36,11 @@ class Font(object):
 
 		if self.typename == "truetype":
 			self.size = int(get("size"))
-			self.antialias = int(get("antialias",1))
+			self.antialias = bool(get("antialias",True))
+			self.bold = bool(get("bold",False))
+			self.italic = bool(get("italic",False))
+			self.underline = bool(get("underline",False))
+			self.recoloring = bool(get("recoloring",False))
 			self.color = map(int,get("color","255,255,255").split(','))
 			self.font = get_manager().createFont(self.source,self.size,"")
 
@@ -44,6 +48,10 @@ class Font(object):
 				raise InitializationError("Could not load font %s" % name)
 
 			self.font.setAntiAlias(self.antialias)
+			self.font.setBoldStyle(self.bold)
+			self.font.setItalicStyle(self.italic)
+			self.font.setUnderlineStyle(self.underline)
+			self.font.setDynamicColoring(self.recoloring)
 			self.font.setColor(*self.color)
 		else:
 			raise InitializationError("Unsupported font type %s" % self.typename)

@@ -55,7 +55,7 @@ namespace FIFE {
 		 * @param start A const reference to the start location.
 		 * @param end A const reference to the target location.
 		 * @param immediate A optional boolean, if true the route bypass the max. ticks limit and solves the path immediately, otherwise false.
-		 * @param costId A const reference to the string that holds the cost identifier. You can use it optional then this cost id is used instead of the default cost.
+		 * @param cost_id A const reference to the string that holds the cost identifier. You can use it optional then this cost id is used instead of the default cost.
 		 */
 		virtual Route* createRoute(const Location& start, const Location& end, bool immediate = false, const std::string& cost_id = "") = 0;
 
@@ -76,7 +76,7 @@ namespace FIFE {
 		 * @param nextLocation A reference to the next location returned by the pather.
 		 * @return A boolean, if true the route could be followed, otherwise false.
 		 */
-		virtual bool followRoute(const Location& current, Route* route, double speed, Location* nextLocation) = 0;
+		virtual bool followRoute(const Location& current, Route* route, double speed, Location& nextLocation) = 0;
 
 		/** Updates the pather (should it need updating).
 		 *

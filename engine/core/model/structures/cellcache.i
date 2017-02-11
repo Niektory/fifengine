@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2012 by the FIFE team                              *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
  *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
@@ -40,17 +40,21 @@ namespace FIFE {
 			Cell* createCell(const ModelCoordinate& mc);
 			Cell* getCell(const ModelCoordinate& mc);
 			void addInteractOnRuntime(Layer* interact);
+			void removeInteractOnRuntime(Layer* interact);
 			const Rect& getSize();
 			void setSize(const Rect& rec);
 			uint32_t getWidth();
 			uint32_t getHeight();
 			int32_t getMaxIndex() const;
+			void setMaxNeighborZ(int32_t z);
+			int32_t getMaxNeighborZ();
 
 			bool isInCellCache(const Location& location) const;
 
 			std::vector<Cell*> getCellsInLine(const ModelCoordinate& pt1, const ModelCoordinate& pt2, bool blocker = false);
 			std::vector<Cell*> getCellsInRect(const Rect& rec);
 			std::vector<Cell*> getCellsInCircle(const ModelCoordinate& center, uint16_t radius);
+			std::vector<Cell*> getCellsInCircleSegment(const ModelCoordinate& center, uint16_t radius, int32_t sangle, int32_t eangle);
 
 			void registerCost(const std::string& costId, double cost);
 			void unregisterCost(const std::string& costId);
@@ -78,6 +82,11 @@ namespace FIFE {
 			void removeCellsFromArea(const std::string& id, const std::vector<Cell*>& cells);
 			void removeArea(const std::string& id);
 			bool existsArea(const std::string& id);
+			std::vector<std::string> getAreas();
+			std::vector<std::string> getCellAreas(Cell* cell);
 			std::vector<Cell*> getAreaCells(const std::string& id);
+			bool isCellInArea(const std::string& id, Cell* cell);
+			void setStaticSize(bool staticSize);
+			bool isStaticSize();
 	};
 }

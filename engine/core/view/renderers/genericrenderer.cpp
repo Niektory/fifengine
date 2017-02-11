@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2011 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -65,6 +65,9 @@ namespace FIFE {
 		Point p2 = m_edge2.getCalculatedPoint(cam, layer);
 		if(m_edge1.getLayer() == layer) {
 			renderbackend->drawLine(p1, p2, m_red, m_green, m_blue, m_alpha);
+			if (renderbackend->getLightingModel() > 0) {
+				renderbackend->changeRenderInfos(RENDER_DATA_WITHOUT_Z, 1, 4, 5, false, false, 0, KEEP, ALWAYS);
+			}
 		}
 	}
 
@@ -80,6 +83,9 @@ namespace FIFE {
 		Point p = m_anchor.getCalculatedPoint(cam, layer);
 		if(m_anchor.getLayer() == layer) {
 			renderbackend->putPixel(p.x, p.y, m_red, m_green, m_blue, m_alpha);
+			if (renderbackend->getLightingModel() > 0) {
+				renderbackend->changeRenderInfos(RENDER_DATA_WITHOUT_Z, 1, 4, 5, false, false, 0, KEEP, ALWAYS);
+			}
 		}
 	}
 
@@ -99,6 +105,9 @@ namespace FIFE {
 		Point p3 = m_edge3.getCalculatedPoint(cam, layer);
 		if(m_edge1.getLayer() == layer) {
 			renderbackend->drawTriangle(p1, p2, p3, m_red, m_green, m_blue, m_alpha);
+			if (renderbackend->getLightingModel() > 0) {
+				renderbackend->changeRenderInfos(RENDER_DATA_WITHOUT_Z, 1, 4, 5, false, false, 0, KEEP, ALWAYS);
+			}
 		}
 	}
 
@@ -120,6 +129,9 @@ namespace FIFE {
 		Point p4 = m_edge4.getCalculatedPoint(cam, layer);
 		if(m_edge1.getLayer() == layer) {
 			renderbackend->drawQuad(p1, p2, p3, p4, m_red, m_green, m_blue, m_alpha);
+			if (renderbackend->getLightingModel() > 0) {
+				renderbackend->changeRenderInfos(RENDER_DATA_WITHOUT_Z, 1, 4, 5, false, false, 0, KEEP, ALWAYS);
+			}
 		}
 	}
 
@@ -136,6 +148,9 @@ namespace FIFE {
 		Point p = m_center.getCalculatedPoint(cam, layer);
 		if(m_center.getLayer() == layer) {
 			renderbackend->drawVertex(p, m_size, m_red, m_green, m_blue, m_alpha);
+			if (renderbackend->getLightingModel() > 0) {
+				renderbackend->changeRenderInfos(RENDER_DATA_WITHOUT_Z, 1, 4, 5, false, false, 0, KEEP, ALWAYS);
+			}
 		}
 	}
 
@@ -202,26 +217,35 @@ namespace FIFE {
 		}
 	}
 
-	GenericRendererTextInfo::GenericRendererTextInfo(RendererNode anchor, IFont* font, std::string text):
+	GenericRendererTextInfo::GenericRendererTextInfo(RendererNode anchor, IFont* font, std::string text, bool zoomed):
 		GenericRendererElementInfo(),
 		m_anchor(anchor),
 		m_font(font),
-		m_text(text) {
+		m_text(text),
+		m_zoomed(zoomed) {
 	}
 	void GenericRendererTextInfo::render(Camera* cam, Layer* layer, RenderList& instances, RenderBackend* renderbackend) {
-		Point p = m_anchor.getCalculatedPoint(cam, layer);
+		Point p = m_anchor.getCalculatedPoint(cam, layer, m_zoomed);
 		if(m_anchor.getLayer() == layer) {
 			Image* img = m_font->getAsImageMultiline(m_text);
 			Rect r;
 			Rect viewport = cam->getViewPort();
-			r.x = p.x-img->getWidth()/2;
-			r.y = p.y-img->getHeight()/2;
-			r.w = img->getWidth();
-			r.h = img->getHeight();
+			uint32_t width, height;
+			if(m_zoomed) {
+				width = static_cast<uint32_t>(round(img->getWidth() * cam->getZoom()));
+				height = static_cast<uint32_t>(round(img->getHeight() * cam->getZoom()));
+			} else {
+				width = img->getWidth();
+				height = img->getHeight();
+			}
+			r.x = p.x-width/2;
+			r.y = p.y-height/2;
+			r.w = width;
+			r.h = height;
 			if(r.intersects(viewport)) {
 				img->render(r);
 				if (renderbackend->getLightingModel() > 0) {
-					renderbackend->changeRenderInfos(1, 4, 5, false, false, 0, KEEP, ALWAYS);
+					renderbackend->changeRenderInfos(RENDER_DATA_WITHOUT_Z, 1, 4, 5, false, false, 0, KEEP, ALWAYS);
 				}
 			}
 		}
@@ -300,8 +324,8 @@ namespace FIFE {
 		GenericRendererElementInfo* info = new GenericRendererVertexInfo(n, size, r, g, b, a);
 		m_groups[group].push_back(info);
 	}
-	void GenericRenderer::addText(const std::string &group, RendererNode n, IFont* font, const std::string &text) {
-		GenericRendererElementInfo* info = new GenericRendererTextInfo(n, font, text);
+	void GenericRenderer::addText(const std::string &group, RendererNode n, IFont* font, const std::string &text, bool zoomed) {
+		GenericRendererElementInfo* info = new GenericRendererTextInfo(n, font, text, zoomed);
 		m_groups[group].push_back(info);
 	}
 	void GenericRenderer::addImage(const std::string &group, RendererNode n, ImagePtr image, bool zoomed) {
@@ -326,6 +350,13 @@ namespace FIFE {
 	}
 	// Remove all groups
 	void GenericRenderer::removeAll() {
+		std::map<std::string, std::vector<GenericRendererElementInfo*> >::iterator it = m_groups.begin();
+		for (; it != m_groups.end(); ++it) {
+			std::vector<GenericRendererElementInfo*>::const_iterator info_it = it->second.begin();
+			for (;info_it != it->second.end(); ++info_it) {
+				delete *info_it;
+			}
+		}
 		m_groups.clear();
 	}
 	// Clear all groups

@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -32,7 +32,7 @@
 
 namespace FIFE {
 
-	// Remember TimeEvent(-1) means that even an registered event won't be called
+	// Remember TimeEvent(-1) means that even a registered event won't be called
 	Timer::Timer()
 		: TimeEvent(-1),
 		m_active(false) {

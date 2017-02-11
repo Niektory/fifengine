@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -52,6 +52,8 @@ namespace FIFE {
 			RELEASED,
 			WHEEL_MOVED_DOWN,
 			WHEEL_MOVED_UP,
+			WHEEL_MOVED_RIGHT,
+			WHEEL_MOVED_LEFT,
 			CLICKED,
 			ENTERED,
 			EXITED,
@@ -67,7 +69,9 @@ namespace FIFE {
 			LEFT = 1,
 			RIGHT = 2,
 			MIDDLE = 4,
-			UNKNOWN_BUTTON = 8
+			X1 = 8,
+			X2 = 16,
+			UNKNOWN_BUTTON = 32
 		};
 
 
@@ -127,7 +131,7 @@ namespace FIFE {
 		virtual bool isConsumed() const { return InputEvent::isConsumed(); }
 		virtual void consumedByWidgets() { InputEvent::consumedByWidgets(); }
 		virtual bool isConsumedByWidgets() const { return InputEvent::isConsumedByWidgets(); }
-		virtual IEventSource* getSource() { return InputEvent::getSource(); }
+		virtual IEventSource* getSource() const { return InputEvent::getSource(); }
 		virtual void setSource(IEventSource* source) { InputEvent::setSource(source); }
 		virtual int32_t getTimeStamp() const { return InputEvent::getTimeStamp(); }
 		virtual void setTimeStamp(int32_t timestamp ) { InputEvent::setTimeStamp(timestamp); }
@@ -167,6 +171,12 @@ namespace FIFE {
 				case MouseEvent::WHEEL_MOVED_UP:
 					s = "wheel_moved_up";
 					break;
+				case MouseEvent::WHEEL_MOVED_RIGHT:
+					s = "wheel_moved_right";
+					break;
+				case MouseEvent::WHEEL_MOVED_LEFT:
+					s = "wheel_moved_left";
+					break;
 				case MouseEvent::CLICKED:
 					s = "clicked";
 					break;
@@ -201,6 +211,15 @@ namespace FIFE {
 					break;
 				case MouseEvent::MIDDLE:
 					s = "middle";
+					break;
+				case MouseEvent::X1:
+					s = "x1";
+					break;
+				case MouseEvent::X2:
+					s = "x2";
+					break;
+				case MouseEvent::UNKNOWN_BUTTON:
+					s = "unknown button";
 					break;
 				default:
 					break;

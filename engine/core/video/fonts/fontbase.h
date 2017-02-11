@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -55,8 +55,21 @@ namespace FIFE {
 		int32_t getRowSpacing() const;
 		void setGlyphSpacing(int32_t spacing);
 		int32_t getGlyphSpacing() const;
-		void setAntiAlias(bool antiAlias);
-		bool isAntiAlias();
+
+		virtual void setAntiAlias(bool antiAlias);
+		virtual bool isAntiAlias() const;
+		virtual void setBoldStyle(bool style);
+		virtual bool isBoldStyle() const;
+		virtual void setItalicStyle(bool style);
+		virtual bool isItalicStyle() const;
+		virtual void setUnderlineStyle(bool style);
+		virtual bool isUnderlineStyle() const;
+		virtual void setStrikethroughStyle(bool style);
+		virtual bool isStrikethroughStyle() const;
+
+		virtual void setDynamicColoring(bool coloring);
+		virtual bool isDynamicColoring() const;
+
 		virtual int32_t getStringIndexAt(const std::string &text, int32_t x) const;
 
 		Image* getAsImage(const std::string& text);
@@ -76,6 +89,11 @@ namespace FIFE {
 
 		std::string mFilename;
 		bool m_antiAlias;
+		bool m_boldStyle;
+		bool m_italicStyle;
+		bool m_underlineStyle;
+		bool m_strikeStyle;
+		bool m_coloring;
 	};
 
 }

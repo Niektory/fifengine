@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 
 # ####################################################################
-#  Copyright (C) 2005-2011 by the FIFE team
+#  Copyright (C) 2005-2017 by the FIFE team
 #  http://www.fifengine.net
 #  This file is part of FIFE.
 #
@@ -28,8 +28,8 @@ from datetime import datetime
 
 from fife import fife
 from fife.extensions import *
-from fife.extensions.basicapplication import ApplicationBase
 from fife.extensions import pychan
+from fife.extensions.pychan.pychanbasicapplication import PychanApplicationBase
 from fife.extensions.pychan import widgets
 from fife.extensions.pychan.internal import get_manager
 from fife.extensions.fife_utils import getUserDataDirectory
@@ -40,7 +40,7 @@ class KeyFilter(fife.IKeyFilter):
 	"""
 	This is the implementation of the fife.IKeyFilter class.
 
-	Prevents any filtered keys from being consumed by guichan.
+	Prevents any filtered keys from being consumed by fifechan.
 	"""
 	def __init__(self, keys):
 		fife.IKeyFilter.__init__(self)
@@ -113,8 +113,8 @@ class ApplicationListener(fife.IKeyListener, fife.ICommandListener, fife.Console
 		pass
 
 	def onCommand(self, command):
-		self.quit = (command.getCommandType() == fife.CMD_QUIT_GAME)
-		if self.quit:
+		if command.getCommandType() == fife.CMD_QUIT_GAME:
+			self.quit = True
 			command.consume()
 
 	def onConsoleCommand(self, command):
@@ -209,7 +209,7 @@ class ApplicationListener(fife.IKeyListener, fife.ICommandListener, fife.Console
 	def onToolsClick(self):
 		print "No tools set up yet"
 
-class FifeTestApplication(ApplicationBase):
+class FifeTestApplication(PychanApplicationBase):
 	"""
 	The main application.  It inherits fife.extensions.ApplicationBase.
 

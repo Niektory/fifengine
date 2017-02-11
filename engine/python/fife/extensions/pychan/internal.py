@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # ####################################################################
-#  Copyright (C) 2005-2011 by the FIFE team
+#  Copyright (C) 2005-2017 by the FIFE team
 #  http://www.fifengine.net
 #  This file is part of FIFE.
 #
@@ -21,7 +21,7 @@
 #  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 # ####################################################################
 
-from compat import guichan, in_fife
+from compat import fifechan, fife, in_fife
 import widgets
 from fife.extensions import fife_timer as timer
 import fonts
@@ -75,12 +75,34 @@ class Manager(object):
 		self.can_execute = False
 
 		import weakref
-		self.allWidgets = weakref.WeakKeyDictionary()
+		self.allTopHierachyWidgets = weakref.WeakKeyDictionary()
+
+		self.allWidgets = set()
 
 		# Autopos
 		from autoposition import placeWidget
 		self.placeWidget = placeWidget
 
+	def addWidget(self, widget):
+		"""
+		Adds Widget to the manager. So the manager "owns" the Widget.
+		Note: As long as the wiget is in self.allWidgets the Python
+		GC can not free it.
+		"""
+		if not widget._added:
+			widget._added = True
+			self.allWidgets.add(widget)
+
+	def removeWidget(self, widget):
+		"""
+		Removes Widget from the manager.
+		Note: As long as the wiget is in self.allWidgets the Python
+		GC can not free it.
+		"""
+		if widget._added:
+			widget._added = False
+			self.allWidgets.remove(widget)
+			
 	def setupModalExecution(self,mainLoop,breakFromMainLoop):
 		"""
 		Setup synchronous execution of dialogs.
@@ -89,40 +111,27 @@ class Manager(object):
 		self.breakFromMainLoop = breakFromMainLoop
 		self.can_execute = True
 
-	def show(self,widget):
+	def addTopWidget(self, widget):
 		"""
-		Shows a widget on screen. Used by L{Widget.show} - do not use directly.
+		Adds a top hierachy widget to Fifechan and place it on the screen.
+		Used by L{Widget.show} - do not use directly.
 		"""
-		self.placeWidget(widget, widget.position_technique)
-		assert widget not in self.allWidgets
-		self.allWidgets[ widget ] = 1
-		self.hook.add_widget( widget.real_widget )
+		if not widget._top_added:
+			assert widget not in self.allTopHierachyWidgets
+			widget._top_added = True
+			self.allTopHierachyWidgets[widget] = 1
+			self.hook.add_widget(widget.real_widget)
 
-	def hide(self,widget):
+	def removeTopWidget(self, widget):
 		"""
-		Hides a widget again. Used by L{Widget.hide} - do not use directly.
-
-		@todo:	delete calls occur even if the widget is not in self.allWidgets
-				we can't rely on a perfect show/hide/show/hide chain here (which we do!)
-				
-				this method is called way too frequent and unmanaged as that we can 
-				ever hope to achieve a strict show/hide/show chain
-				
-				weak ref should only be deleted if there is one, because
-				hiding/showing a widget is a different process then updating
-				the self.allWidgets datastructure
-				
-				the assert check will trigger on a frequent basis, thus
-				I added it but uncommented it for further notice
+		Removes a top hierachy widget from Fifechan.
+		Used by L{Widget.hide} - do not use directly.
 		"""
-		self.hook.remove_widget( widget.real_widget )
-
-		# triggered on a regular basis
-#		assert widget not in self.allWidgets, "KeyError: pychan tried to delete this widget: %s" % widget
-
-		if widget not in self.allWidgets:
-			return
-		del self.allWidgets[ widget ]
+		if widget._top_added:
+			assert widget in self.allTopHierachyWidgets
+			widget._top_added = False
+			self.hook.remove_widget(widget.real_widget)
+			del self.allTopHierachyWidgets[widget]
 
 	def getConsole(self):
 		"""
@@ -149,9 +158,9 @@ class Manager(object):
 		"""
 		if in_fife:
 			font = self.fonts.get(name)
-			if isinstance(font,guichan.GuiFont):
+			if isinstance(font,fife.GuiFont):
 				return font
-			if hasattr(font,"font") and isinstance(getattr(font,"font"),guichan.GuiFont):
+			if hasattr(font,"font") and isinstance(getattr(font,"font"),fife.GuiFont):
 				return font.font
 			raise InitializationError("Couldn't find the font '%s' - did you forget loading a .fontdef?" % str(name))
 		else:
@@ -165,13 +174,13 @@ class Manager(object):
 
 	def releaseFont(self, font):
 		"""
-		Releases a font from memory.  Expects a guichan.GuiFont. 
+		Releases a font from memory.  Expects a fifechan.GuiFont. 
 		
 		@todo: This needs to be tested.  Also should add a way to release
 		a font by name (fonts.Font).
 		"""
-		if not isinstance(font,guichan.GuiFont):
-			raise InitializationError("PyChan Manager expected a guichan.GuiFont instance, not %s." % repr(font))
+		if not isinstance(font,fifechan.GuiFont):
+			raise InitializationError("PyChan Manager expected a fifechan.GuiFont instance, not %s." % repr(font))
 		self.hook.release_font(font)
 
 	def addFont(self,font):
@@ -221,7 +230,7 @@ class Manager(object):
 
 			if type(class_) == type(widgets.Widget) and issubclass(class_,widgets.Widget):
 				return class_
-			if not widgets.WIDGETS.has_key(str(class_)):
+			if str(class_) not in widgets.WIDGETS:
 				raise InitializationError("Can't resolve %s to a widget class." % repr(class_))
 			return widgets.WIDGETS[str(class_)]
 
@@ -234,10 +243,10 @@ class Manager(object):
 			style_copy[new_k] = v
 		return style_copy
 
-	def loadImage(self,filename):
+	def loadImage(self,filename,gui=True):
 		if not filename:
 			  raise InitializationError("Empty Image file.")
-		return self.hook.load_image(filename)
+		return self.hook.load_image(filename,gui)
 
 # Default Widget style.
 
@@ -245,10 +254,10 @@ DEFAULT_STYLE = {
 	'default' : {
 		'border_size': 0,
 		'margins': (0,0),
-		'base_color' : guichan.Color(28,28,28),
-		'foreground_color' : guichan.Color(255,255,255),
-		'background_color' : guichan.Color(50,50,50),
-		'selection_color' : guichan.Color(80,80,80),
+		'base_color' : fifechan.Color(28,28,28),
+		'foreground_color' : fifechan.Color(255,255,255),
+		'background_color' : fifechan.Color(50,50,50),
+		'selection_color' : fifechan.Color(80,80,80),
 		'font' : 'default'
 	},
 	'Button' : {
@@ -261,11 +270,11 @@ DEFAULT_STYLE = {
 	},
 	'RadioButton' : {
 		'border_size': 0,
-		'background_color' : guichan.Color(0,0,0),
+		'background_color' : fifechan.Color(0,0,0),
 	},
 	'Label' : {
 		'border_size': 0,
-		'background_color' : guichan.Color(50,50,50,0)
+		'background_color' : fifechan.Color(50,50,50,0)
 	},
 	'ListBox' : {
 		'border_size': 0,
@@ -273,9 +282,9 @@ DEFAULT_STYLE = {
 	'Window' : {
 		'border_size': 0,
 		'margins': (5,5),
-		'opaque' : 1,
+		'opaque' : True,
 		'padding':2,
-		'titlebar_height' : 12,
+		'titlebar_height' : 25,
 		'background_image' : None,
 	},
 	'TextBox' : {
@@ -284,7 +293,7 @@ DEFAULT_STYLE = {
 		'border_size': 0,
 		'margins': (0,0),
 		'padding':2,
-		'opaque' : 1,
+		'opaque' : True,
 		'background_image' : None,
 	}
 }

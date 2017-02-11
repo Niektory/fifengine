@@ -1,6 +1,6 @@
 /**************************************************************************
-*   Copyright (C) 2005-2009 by the FIFE team                              *
-*   http://www.fifengine.de                                               *
+*   Copyright (C) 2005-2017 by the FIFE team                              *
+*   http://www.fifengine.net                                              *
 *   This file is part of FIFE.                                            *
 *                                                                         *
 *   FIFE is free software; you can redistribute it and/or                 *
@@ -31,4 +31,3 @@ namespace FIFE {
 
 %include "loaders/native/map/iobjectloader.h"
 %include "loaders/native/map/objectloader.h"
-

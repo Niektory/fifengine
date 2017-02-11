@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -39,7 +39,7 @@
 namespace FIFE {
 
 	/** Imagefont that is able to read glyphs from single image sheet, see e.g.
-	 *  guichan imagefontcollection (google for it)
+	 *  fifechan imagefontcollection (google for it)
 	 */
 	class SubImageFont: public ImageFontBase {
 		public:

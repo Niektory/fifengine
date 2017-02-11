@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2010 by the FIFE team                              *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
  *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
@@ -21,7 +21,6 @@
 %module fife
 %{
 #include "controller/engine.h"
-#include "gui/guichan/guichanmanager.h"
 %}
 
 
@@ -43,6 +42,7 @@ namespace FIFE {
 	class ScreenMode;
 	class Image;
 	class ImageManager;
+	class AnimationManager;
 	class SoundClipManager;
 	class OffRenderer;
 	class TargetRenderer;
@@ -55,6 +55,14 @@ namespace FIFE {
 		std::vector<uint8_t> getPossibleBitsPerPixel() const;
 		void setFullScreen(bool fullscreen);
 		bool isFullScreen() const;
+		void setRefreshRate(uint16_t rate);
+		uint16_t getRefreshRate() const;
+		void setDisplay(uint8_t display);
+		uint8_t getDisplay() const;
+		void setVSync(bool vsync);
+		bool isVSync() const;
+		void setSDLDriver(const std::string& driver);
+		const std::string& getSDLDriver() const;
 		void setInitialVolume(float volume);
 		float getInitialVolume() const;
 		float getMaxVolume() const;
@@ -69,6 +77,16 @@ namespace FIFE {
 		bool isGLUseFramebuffer() const;
 		void setGLUseNPOT(bool oglusenpot);
 		bool isGLUseNPOT() const;
+		void setGLTextureFiltering(FIFE::TextureFiltering filter);
+		FIFE::TextureFiltering getGLTextureFiltering() const;
+		void setGLUseMipmapping(bool mipmapping);
+		bool isGLUseMipmapping() const;
+		void setGLUseMonochrome(bool monochrome);
+		bool isGLUseMonochrome() const;
+		void setGLUseDepthBuffer(bool buffer);
+		bool isGLUseDepthBuffer() const;
+		void setGLAlphaTestValue(float alpha);
+		float getGLAlphaTestValue() const;
 		void setScreenWidth(uint16_t screenwidth);
 		uint16_t getScreenWidth() const;
 		void setScreenHeight(uint16_t screenheight);
@@ -133,6 +151,7 @@ namespace FIFE {
 		void setGuiManager(IGUIManager* guimanager);
 		IGUIManager* getGuiManager();
 		ImageManager* getImageManager();
+		AnimationManager* getAnimationManager();
 		SoundClipManager* getSoundClipManager();
 		RenderBackend* getRenderBackend();
 		Model* getModel();

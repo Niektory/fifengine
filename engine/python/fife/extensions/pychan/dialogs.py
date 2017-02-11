@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 # ####################################################################
-#  Copyright (C) 2005-2009 by the FIFE team
-#  http://www.fifengine.de
+#  Copyright (C) 2005-2017 by the FIFE team
+#  http://www.fifengine.net
 #  This file is part of FIFE.
 #
 #  FIFE is free software; you can redistribute it and/or
@@ -50,9 +50,9 @@ class XMLDialog(object):
 
 		screen_w, screen_h = screen_width(), screen_height()
 		if self.max_size is None:
-			self.max_size = screen_w/2, screen_h/3
+			self.max_size = screen_w // 2, screen_h // 3
 		if self.min_size is None:
-			self.min_size = screen_w/2, screen_h/4
+			self.min_size = screen_w // 2, screen_h // 4
 		self.gui.max_size = self.max_size
 		self.gui.min_size = self.min_size
 
@@ -87,7 +87,7 @@ class XMLDialog(object):
 MESSAGE_BOX_XML = """\
 <Window name="window" title="Message">
 <ScrollArea>
-<Label wrap_text="1" text="$MESSAGE" name="message" vexpand="1"/>
+<Label wrap_text="1" text="$MESSAGE" name="message" vexpand="True"/>
 </ScrollArea>
 <HBox>
 <Spacer/><Button min_size="50,0" name="okButton" text="OK"/>
@@ -98,7 +98,7 @@ MESSAGE_BOX_XML = """\
 YESNO_BOX_XML = """\
 <Window name="window" title="Question">
 <ScrollArea>
-<Label wrap_text="1" text="$MESSAGE" name="message" vexpand="1"/>
+<Label wrap_text="1" text="$MESSAGE" name="message" vexpand="True"/>
 </ScrollArea>
 <HBox>
 <Spacer/>
@@ -111,7 +111,7 @@ YESNO_BOX_XML = """\
 YESNOCANCEL_BOX_XML = """\
 <Window name="window" title="Question">
 <ScrollArea>
-<Label wrap_text="1" text="$MESSAGE" name="message" vexpand="1"/>
+<Label wrap_text="1" text="$MESSAGE" name="message" vexpand="True"/>
 </ScrollArea>
 <HBox>
 <Spacer/>
@@ -139,7 +139,7 @@ SELECT_BOX_XML = """\
 
 EXCEPTION_CATCHER_XML="""\
 <Window name="window" title="An exception occurred - what now?">
-  <VBox hexpand="1">
+  <VBox hexpand="True">
     <Label wrap_text="1" max_size="400,90000" text="$MESSAGE" name="message"/>
     <ScrollArea>
     <Label text="$MESSAGE" name="traceback"/>
@@ -164,7 +164,7 @@ def _make_text(message):
 def message(message="",caption="Message"):
 	text = _make_text(message)
 	dialog = XMLDialog(StringIO(MESSAGE_BOX_XML))
-	dialog.gui.findChild(name="message").max_width = screen_width()/2 - 50
+	dialog.gui.findChild(name="message").max_width = screen_width() // 2 - 50
 	dialog.gui.findChild(name="message").text = text
 	dialog.gui.findChild(name="window").title = caption
 
@@ -173,7 +173,7 @@ def message(message="",caption="Message"):
 def yesNo(message="",caption="Message"):
 	text = _make_text(message)
 	dialog = XMLDialog(StringIO(YESNO_BOX_XML))
-	dialog.gui.findChild(name="message").max_width = screen_width()/2 - 50
+	dialog.gui.findChild(name="message").max_width = screen_width() // 2 - 50
 	dialog.gui.findChild(name="message").text = text
 	dialog.gui.findChild(name="window").title = caption
 
@@ -182,7 +182,7 @@ def yesNo(message="",caption="Message"):
 def yesNoCancel(message="",caption="Message"):
 	text = _make_text(message)
 	dialog = XMLDialog(StringIO(YESNOCANCEL_BOX_XML))
-	dialog.gui.findChild(name="message").max_width = screen_width()/2 - 50
+	dialog.gui.findChild(name="message").max_width = screen_width() // 2 - 50
 	dialog.gui.findChild(name="message").text = text
 	dialog.gui.findChild(name="window").title = caption
 
@@ -191,8 +191,8 @@ def yesNoCancel(message="",caption="Message"):
 def select(message="",options=[],caption="Message"):
 	text = _make_text(message)
 	dialog = XMLDialog(StringIO(SELECT_BOX_XML))
-	dialog.size = screen_width()/3, 2*screen_height()/3
-	dialog.gui.findChild(name="message").max_width = screen_width()/2 - 50
+	dialog.size = screen_width() // 3, (2 * screen_height()) // 3
+	dialog.gui.findChild(name="message").max_width = screen_width() // 2 - 50
 	dialog.gui.findChild(name="message").text = text
 	dialog.gui.findChild(name="window").title = caption
 	
@@ -215,8 +215,8 @@ def trace(f):
 			
 			tb = traceback.format_exception(sys.exc_type, sys.exc_value, sys.exc_traceback)
 			dialog.gui.findChild(name="traceback").text = "".join(tb)
-			dialog.min_size = screen_width()/2,3*screen_height()/4
-			dialog.max_size = screen_width()/2,3*screen_height()/4
+			dialog.min_size = screen_width() // 2, (3 * screen_height()) // 4
+			dialog.max_size = screen_width() // 2, (3 * screen_height()) // 4
 			result = dialog.execute()
 			if result == YES:
 				return new_f(*args,**kwargs)

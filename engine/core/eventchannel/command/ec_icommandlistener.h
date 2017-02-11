@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -43,7 +43,7 @@ namespace FIFE {
 	 */
 	class ICommandListener {
 	public:
-		/** Called when an command is received from a command source
+		/** Called when a command is received from a command source
 		 * @param command command coming from command source
 		 */
 		virtual void onCommand(Command& command) = 0;

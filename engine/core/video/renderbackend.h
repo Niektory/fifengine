@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2011 by the FIFE team                              *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
  *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
@@ -43,6 +43,7 @@
 #include "video/devicecaps.h"
 
 #include "image.h"
+#include "color.h"
 
 #ifdef HAVE_OPENGL
 #include "video/opengl/fife_opengl.h"
@@ -87,6 +88,34 @@ namespace FIFE {
 		ALWAYS
 	};
 #endif
+	
+	enum OverlayType {
+		OVERLAY_TYPE_NONE = 0,
+		OVERLAY_TYPE_COLOR = 1,
+		OVERLAY_TYPE_COLOR_AND_TEXTURE = 2,
+		OVERLAY_TYPE_TEXTURES_AND_FACTOR = 3
+	};
+
+	enum TextureFiltering {
+		TEXTURE_FILTER_NONE = 0,
+		TEXTURE_FILTER_BILINEAR = 1,
+		TEXTURE_FILTER_TRILINEAR = 2,
+		TEXTURE_FILTER_ANISOTROPIC = 3
+	};
+
+	enum RenderDataType {
+		RENDER_DATA_WITHOUT_Z = 0,
+		RENDER_DATA_TEXTURE_Z = 1,
+		RENDER_DATA_TEXCOLOR_Z = 2,
+		RENDER_DATA_MULTITEXTURE_Z = 3
+	};
+
+	class GuiVertex {
+	public:
+		DoublePoint position;
+		Color color;
+		DoublePoint texCoords;
+	};
 
 	 /** Abstract interface for all the renderbackends. */
 	class RenderBackend: public DynamicSingleton<RenderBackend> {
@@ -191,7 +220,7 @@ namespace FIFE {
 
 		/** Dirty helper function to change the render infos
 		 */
-		virtual void changeRenderInfos(uint16_t elements, int32_t src, int32_t dst, bool light, bool stentest, uint8_t stenref, GLConstants stenop, GLConstants stenfunc) = 0;
+		virtual void changeRenderInfos(RenderDataType type, uint16_t elements, int32_t src, int32_t dst, bool light, bool stentest, uint8_t stenref, GLConstants stenop, GLConstants stenfunc, OverlayType otype = OVERLAY_TYPE_NONE) = 0;
 
 		/** Creates a Screenshot and saves it to a file.
 		 */
@@ -200,6 +229,8 @@ namespace FIFE {
 		/** Creates a Screenshot with the given size(w,h) and saves it to a file.
 		 */
 		virtual void captureScreen(const std::string& filename, uint32_t width, uint32_t height) = 0;
+
+		SDL_Window* getWindow() {return m_window; }
 
 		/** Get current screen mode
 		 * @return The current screen mode
@@ -236,6 +267,18 @@ namespace FIFE {
 		 */
 		virtual void drawLine(const Point& p1, const Point& p2, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) = 0;
 
+		/** Draws line between given points with given RGBA and width.
+		 */
+		virtual void drawThickLine(const Point& p1, const Point& p2, uint8_t width, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) = 0;
+
+		/** Draws lines between given points with given RGBA and width.
+		 */
+		virtual void drawPolyLine(const std::vector<Point>& points, uint8_t width, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) = 0;
+
+		/** Draws bezier curve between given points with given RGBA and width.
+		 */
+		virtual void drawBezier(const std::vector<Point>& points, int32_t steps, uint8_t width, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) = 0;
+
 		/** Draws triangle between given points with given RGBA
 		 */
 		virtual void drawTriangle(const Point& p1, const Point& p2, const Point& p3, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) = 0;
@@ -256,10 +299,35 @@ namespace FIFE {
 		 */
 		virtual void drawVertex(const Point& p, const uint8_t size, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) = 0;
 
+		/** Draws a circle.
+		 */
+		virtual void drawCircle(const Point& p, uint32_t radius, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) = 0;
+
+		/** Draws a filled circle.
+		 */
+		virtual void drawFillCircle(const Point& p, uint32_t radius, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) = 0;
+
+		/** Draws a circle segment.
+		 * Note: The start angle must be less than the end angle. 0 angle is right side.
+		 */
+		virtual void drawCircleSegment(const Point& p, uint32_t radius, int32_t sangle, int32_t eangle, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) = 0;
+
+		/** Draws a filled circle segment. 0 angle is right side.
+		 * Note: The start angle must be less than the end angle.
+		 */
+		virtual void drawFillCircleSegment(const Point& p, uint32_t radius, int32_t sangle, int32_t eangle, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) = 0;
+
 		/** Draws a light primitive that based on a triangle fan
 		 */
 		virtual void drawLightPrimitive(const Point& p, uint8_t intensity, float radius, int32_t subdivisions, float xstretch, float ystretch, uint8_t red, uint8_t green, uint8_t blue) = 0;
 
+		/** Enables scissor test on the render backend.
+		 */
+		virtual void enableScissorTest() = 0;
+		
+		/** Disables scissor test on the render backend.
+		 */
+		virtual void disableScissorTest() = 0;
 
 		/** Enable or disable the alpha 'optimizing' code
 		 *
@@ -297,6 +365,58 @@ namespace FIFE {
 		 */
 		bool isNPOTEnabled() const { return m_usenpot; }
 
+		/** Sets the texture filtering method.
+		 * Supports none, bilinear, trilinear and anisotropic filtering.
+		 * Note! Works only for OpenGL backends.
+		 * @see TextureFiltering
+		 */
+		void setTextureFiltering(TextureFiltering filter);
+
+		/** @see setTextureFiltering
+		 */
+		TextureFiltering getTextureFiltering() const;
+
+		/** Enables or disables the usage of mipmapping.
+		 * Note! Works only for OpenGL backends.
+		 */
+		void setMipmappingEnabled(bool enabled);
+
+		/** @see setMipmappingEnabled
+		 */
+		bool isMipmappingEnabled() const;
+		
+		/** Gets max antisotropy for antisotropic filtering.
+		 */
+		int32_t getMaxAnisotropy() const;
+
+		/** Enables or disables monochrome rendering.
+		 * Note! Works only for OpenGL backends.
+		 */
+		void setMonochromeEnabled(bool enabled);
+
+		/** @see setMonochromeEnabled
+		 */
+		bool isMonochromeEnabled() const;
+
+		/** Enables or disables depth buffer rendering.
+		 * Note! Works only for OpenGL backend.
+		 */
+		void setDepthBufferEnabled(bool enabled);
+
+		/** @see setMonochromeEnabled
+		 */
+		bool isDepthBufferEnabled() const;
+
+		/** Sets the value for alpha test.
+		 * Discards a fragment if its value is not greater. Only used if depth buffer is enabled. 
+		 * Note! Works only for OpenGL backend.
+		 */
+		void setAlphaTestValue(float alpha);
+
+		/** @see setAlphaValue
+		 */
+		float getAlphaTestValue() const;
+
 		/** Sets whether to use the colorkey feature
 		*/
 		void setColorKeyEnabled(bool colorkeyenable);
@@ -325,6 +445,14 @@ namespace FIFE {
 		*/
 		const SDL_PixelFormat& getPixelFormat() const;
 
+		/** Sets whether to use VSync
+		 */
+		void setVSyncEnabled(bool vsync);
+
+		/** Gets whether VSync is in use
+		 */
+		bool isVSyncEnabled() const;
+
 		/** Sets whether to use the frame limiter
 		 */
 		void setFrameLimitEnabled(bool limited);
@@ -341,6 +469,10 @@ namespace FIFE {
 		 */
 		uint16_t getFrameLimit() const;
 
+		/** Returns screen render surface
+		 */
+		 SDL_Surface* getScreenSurface();
+
 		/** Returns currently attached render surface
 		 */
 		SDL_Surface* getRenderTargetSurface();
@@ -352,8 +484,27 @@ namespace FIFE {
 		/** Detaches current render surface
 		 */
 		virtual void detachRenderTarget() = 0;
+		
+		/** Renders geometry required by gui.
+		 */
+		virtual void renderGuiGeometry(const std::vector<GuiVertex>& vertices, const std::vector<int>& indices, const DoublePoint& translation, ImagePtr texture) = 0;
+		
+		/** Helper that returns an interpolated Point
+		 */
+		Point getBezierPoint(const std::vector<Point>& points, int32_t elements, float t);
+
+		/** Helper that adds the control points for bezier curves.
+		 */
+		void addControlPoints(const std::vector<Point>& points, std::vector<Point>& newPoints);
 
 	protected:
+		
+		/** Sets given clip area into image
+		 *  @see pushClipArea
+		 */
+		virtual void setClipArea(const Rect& cliparea, bool clear) = 0;
+
+		SDL_Window* m_window;
 		SDL_Surface* m_screen;
 		SDL_Surface* m_target;
 		bool m_compressimages;
@@ -368,10 +519,20 @@ namespace FIFE {
 		bool m_isbackgroundcolor;
 		SDL_Color m_backgroundcolor;
 
-		/** Sets given clip area into image
-		 *  @see pushClipArea
-		 */
-		virtual void setClipArea(const Rect& cliparea, bool clear) = 0;
+		// mipmapping
+		bool m_isMipmapping;
+		// texture filter
+		TextureFiltering m_textureFilter;
+		// max anisotropy
+		int32_t m_maxAnisotropy;
+		// monochrome rendering
+		bool m_monochrome;
+		// depth buffer rendering
+		bool m_isDepthBuffer;
+		// alpha test value
+		float m_alphaValue;
+		// vsync value
+		bool m_vSync;
 
 		/** Clears any possible clip areas
 		 *  @see pushClipArea
@@ -385,10 +546,12 @@ namespace FIFE {
 		};
 		std::stack<ClipInfo> m_clipstack;
 
+		ClipInfo m_guiClip;
 	private:
 		bool m_isframelimit;
 		uint32_t m_frame_start;
 		uint16_t m_framelimit;
+		
 	};
 }
 

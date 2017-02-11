@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -39,10 +39,30 @@ namespace FIFE {
         return bfs::is_directory(bfs::path(path));
 	}
 
-	FIFE::VFSSource* DirectoryProvider::createSource(const std::string& path) const {
-		if (isReadable(path))
-            return new VFSDirectory(getVFS(), path);
+	FIFE::VFSSource* DirectoryProvider::createSource(const std::string& path) {
+		if (isReadable(path)) {
+			VFSSource* source = NULL;
+			if ( hasSource(path)) {
+				source = m_sources[path];
+			} else {
+				source = new VFSDirectory(getVFS(), path);
+				m_sources[path] = source;
+			}
+			return source;
+		}
 		else
 			throw Exception("Path " + path + " is not readable.");
+	}
+
+	VFSSource* DirectoryProvider::getSource(const std::string& path) const {
+		VFSSource* source = NULL;
+		if (hasSource(path)) {
+			source = m_sources.find(path)->second;
+		}
+		return source;
+	}
+
+	bool DirectoryProvider::hasSource(const std::string & path) const {
+		return m_sources.count(path) > 0;
 	}
 }

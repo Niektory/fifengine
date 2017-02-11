@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2009 by the FIFE team                              *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
  *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
@@ -24,17 +24,19 @@
 #include <vector>
 
 // 3rd party includes
+#include <tinyxml.h>
 
 // FIFE includes
 // These includes are split up in two parts, separated by one empty line
 // First block: files included from the FIFE root src directory
 // Second block: files included from the same folder
-#include "ext/tinyxml/fife_tinyxml.h"
 #include "model/model.h"
 #include "model/structures/layer.h"
 #include "model/structures/instance.h"
 #include "model/structures/cell.h"
 #include "model/structures/cellcache.h"
+#include "model/structures/trigger.h"
+#include "model/structures/triggercontroller.h"
 #include "model/metamodel/grids/cellgrid.h"
 #include "model/metamodel/modelcoords.h"
 #include "model/metamodel/action.h"
@@ -47,6 +49,7 @@
 #include "util/resource/resource.h"
 #include "util/structures/rect.h"
 #include "video/imagemanager.h"
+#include "video/animationmanager.h"
 #include "video/image.h"
 #include "video/renderbackend.h"
 #include "view/visual.h"
@@ -63,21 +66,21 @@ namespace FIFE {
 	/** Logger to use for this source file.
 	 *  @relates Logger
 	 */
-    static Logger _log(LM_NATIVE_LOADERS);
+	static Logger _log(LM_NATIVE_LOADERS);
 
 	MapLoader::MapLoader(Model* model, VFS* vfs, ImageManager* imageManager, RenderBackend* renderBackend)
-	: m_model(model), m_vfs(vfs), m_imageManager(imageManager), m_renderBackend(renderBackend),
+	: m_model(model), m_vfs(vfs), m_imageManager(imageManager), m_animationManager(AnimationManager::instance()), m_renderBackend(renderBackend),
 	  m_loaderName("fife"), m_mapDirectory("") {
-        AnimationLoaderPtr animationLoader(new AnimationLoader(m_vfs, m_imageManager));
-        m_objectLoader.reset(new ObjectLoader(m_model, m_vfs, m_imageManager, animationLoader));
-        m_atlasLoader.reset(new AtlasLoader(m_model, m_vfs, m_imageManager));
+		AnimationLoaderPtr animationLoader(new AnimationLoader(m_vfs, m_imageManager, m_animationManager));
+		AtlasLoaderPtr atlasLoader(new AtlasLoader(m_model, m_vfs, m_imageManager, m_animationManager));
+		m_objectLoader.reset(new ObjectLoader(m_model, m_vfs, m_imageManager, m_animationManager, animationLoader, atlasLoader));
 	}
 
-    MapLoader::~MapLoader() {
+	MapLoader::~MapLoader() {
 
-    }
+	}
 
-    Map* MapLoader::load(const std::string& filename) {
+	Map* MapLoader::load(const std::string& filename) {
 		Map* map = NULL;
 
 		// reset percent done listener just in case
@@ -87,54 +90,54 @@ namespace FIFE {
 		bfs::path mapPath(filename);
 
 		if (HasParentPath(mapPath)) {
-            if (GetParentPath(mapPath).string() != m_mapDirectory) {
-			    // save the directory where the map file is located
-			    m_mapDirectory = GetParentPath(mapPath).string();
-            }
+			if (GetParentPath(mapPath).string() != m_mapDirectory) {
+				// save the directory where the map file is located
+				m_mapDirectory = GetParentPath(mapPath).string();
+			}
 		}
 
 		TiXmlDocument mapFile;
 
-        std::string mapFilename = mapPath.string();
+		std::string mapFilename = mapPath.string();
 
-        try {
-            RawData* data = m_vfs->open(mapFilename);
+		try {
+			RawData* data = m_vfs->open(mapFilename);
 
-            if (data) {
-                if (data->getDataLength() != 0) {
-                    mapFile.Parse(data->readString(data->getDataLength()).c_str());
+			if (data) {
+				if (data->getDataLength() != 0) {
+					mapFile.Parse(data->readString(data->getDataLength()).c_str());
 
-                    if (mapFile.Error()) {
-                        std::ostringstream oss;
-                        oss << " Failed to load"
-                            << mapFilename
-                            << " : " << __FILE__
-                            << " [" << __LINE__ << "]"
-                            << std::endl;
-                        FL_ERR(_log, oss.str());
+					if (mapFile.Error()) {
+						std::ostringstream oss;
+						oss << " Failed to load"
+							<< mapFilename
+							<< " : " << __FILE__
+							<< " [" << __LINE__ << "]"
+							<< std::endl;
+						FL_ERR(_log, oss.str());
 
-                        return map;
-                    }
-                }
+						return map;
+					}
+				}
 
-                // done with data delete resource
-                delete data;
-                data = 0;
-            }
-        }
-        catch (NotFound& e)
-        {
-            FL_ERR(_log, e.what());
+				// done with data delete resource
+				delete data;
+				data = 0;
+			}
+		}
+		catch (NotFound& e)
+		{
+			FL_ERR(_log, e.what());
 
-            // TODO - should we abort here
-            //        or rethrow the exception
-            //        or just keep going
+			// TODO - should we abort here
+			//        or rethrow the exception
+			//        or just keep going
 
-            return map;
-        }
+			return map;
+		}
 
-        // if we get here then everything loaded properly
-        // so we can just parse out the contents
+		// if we get here then everything loaded properly
+		// so we can just parse out the contents
 		const TiXmlElement* root = mapFile.RootElement();
 
 		if (root) {
@@ -145,7 +148,7 @@ namespace FIFE {
 			}
 
 			int numElements = 0;
-			int numElementsRetVal = root->QueryValueAttribute("elements", &numElements);
+			root->QueryValueAttribute("elements", &numElements);
 			m_percentDoneListener.setTotalNumberOfElements(numElements);
 
 			const std::string* mapName = root->Attribute(std::string("id"));
@@ -157,46 +160,46 @@ namespace FIFE {
 				catch (NameClash& e) {
 					FL_ERR(_log, e.what());
 
-                    // just rethrow to client
-                    throw;
+					// just rethrow to client
+					throw;
 				}
 
 				if (map) {
-                    map->setFilename(mapFilename);
+					map->setFilename(mapFilename);
 
 					std::string ns = "";
 					for (const TiXmlElement *importElement = root->FirstChildElement("import"); importElement; importElement = importElement->NextSiblingElement("import")) {
 						const std::string* importDir = importElement->Attribute(std::string("dir"));
 						const std::string* importFile = importElement->Attribute(std::string("file"));
 
-                        std::string directory = "";
-                        if (importDir) {
-                            directory = *importDir;
-                        }
+						std::string directory = "";
+						if (importDir) {
+							directory = *importDir;
+						}
 
-                        std::string file = "";
-                        if (importFile) {
-                            file = *importFile;
-                        }
+						std::string file = "";
+						if (importFile) {
+							file = *importFile;
+						}
 
-                        if (importDir && !importFile) {
-                            bfs::path fullPath(m_mapDirectory);
-                            fullPath /= directory;
-                            loadImportDirectory(fullPath.string());
-                        }
-                        else if (importFile) {
-                            bfs::path fullFilePath(file);
-                            bfs::path fullDirPath(directory);
-                            if (importDir) {
-                                fullDirPath = bfs::path(m_mapDirectory);
-                                fullDirPath /= directory;
-                            }
-                            else {
-                                fullFilePath = bfs::path(m_mapDirectory);
-                                fullFilePath /= file;
-                            }
-                            loadImportFile(fullFilePath.string(), fullDirPath.string());
-                        }
+						if (importDir && !importFile) {
+							bfs::path fullPath(m_mapDirectory);
+							fullPath /= directory;
+							loadImportDirectory(fullPath.string());
+						}
+						else if (importFile) {
+							bfs::path fullFilePath(file);
+							bfs::path fullDirPath(directory);
+							if (importDir) {
+								fullDirPath = bfs::path(m_mapDirectory);
+								fullDirPath /= directory;
+							}
+							else {
+								fullFilePath = bfs::path(m_mapDirectory);
+								fullFilePath /= file;
+							}
+							loadImportFile(fullFilePath.string(), fullDirPath.string());
+						}
 					}
 					// converts multiobject part id to object pointer
 					std::list<std::string> namespaces = m_model->getNamespaces();
@@ -227,17 +230,20 @@ namespace FIFE {
 						double zOffset = 0.0;
 						double xScale = 1.0;
 						double yScale = 1.0;
+						double zScale = 1.0;
 						double rotation = 0.0;
 
 						int xOffsetRetVal = layerElement->QueryValueAttribute("x_offset", &xOffset);
 						int yOffsetRetVal = layerElement->QueryValueAttribute("y_offset", &yOffset);
-						int zOffsetRetVal = layerElement->QueryValueAttribute("z_offset", &zOffset);
+						layerElement->QueryValueAttribute("z_offset", &zOffset);
 						int xScaleRetVal = layerElement->QueryValueAttribute("x_scale", &xScale);
 						int yScaleRetVal = layerElement->QueryValueAttribute("y_scale", &yScale);
+						layerElement->QueryValueAttribute("z_scale", &zScale);
 						int rotationRetVal = layerElement->QueryValueAttribute("rotation", &rotation);
 
 						const std::string* layerName = layerElement->Attribute(std::string("id"));
 						const std::string* pathing = layerElement->Attribute(std::string("pathing"));
+						const std::string* sorting = layerElement->Attribute(std::string("sorting"));
 						const std::string* gridType = layerElement->Attribute(std::string("grid_type"));
 						const std::string* layerType = layerElement->Attribute(std::string("layer_type"));
 						const std::string* layerTypeName = layerElement->Attribute(std::string("layer_type_id"));
@@ -256,6 +262,15 @@ namespace FIFE {
 								pathStrategy = CELL_EDGES_AND_DIAGONALS;
 							}
 
+							SortingStrategy sortStrategy = SORTING_CAMERA;
+							if (sorting) {
+								if (*sorting == "location") {
+									sortStrategy = SORTING_LOCATION;
+								} else if (*sorting == "camera_and_location") {
+									sortStrategy = SORTING_CAMERA_AND_LOCATION;
+								}
+							}
+
 							CellGrid* grid = NULL;
 							if (gridType) {
 								grid = m_model->getCellGrid(*gridType);
@@ -270,6 +285,7 @@ namespace FIFE {
 								grid->setYShift(yOffset);
 								grid->setYScale(yScale);
 								grid->setZShift(zOffset);
+								grid->setZScale(zScale);
 								grid->setRotation(rotation);
 
 								Layer *layer = NULL;
@@ -283,6 +299,7 @@ namespace FIFE {
 
 								if (layer) {
 									layer->setPathingStrategy(pathStrategy);
+									layer->setSortingStrategy(sortStrategy);
 									if (layerType) {
 										if (*layerType == "walkable") {
 											layer->setWalkable(true);
@@ -324,7 +341,7 @@ namespace FIFE {
 
 											int xRetVal = instance->QueryValueAttribute("x", &x);
 											int yRetVal = instance->QueryValueAttribute("y", &y);
-											int zRetVal = instance->QueryValueAttribute("z", &z);
+											instance->QueryValueAttribute("z", &z);
 											int rRetVal = instance->QueryValueAttribute("r", &r);
 
 											if (xRetVal == TIXML_SUCCESS) {
@@ -413,19 +430,19 @@ namespace FIFE {
 														if (object->getAction("default")) {
 															Location target(layer);
 
-															inst->act("default", target, true);
+															inst->actRepeat("default", target);
 														}
 													}
-                                                    else
-                                                    {
-                                                        std::ostringstream oss;
-                                                        oss << " Failed to create instance of object "
-                                                            << *objectId
-                                                            << " : " << __FILE__
-                                                            << " [" << __LINE__ << "]"
-                                                            << std::endl;
-                                                        FL_ERR(_log, oss.str());
-                                                    }
+													else
+													{
+														std::ostringstream oss;
+														oss << " Failed to create instance of object "
+															<< *objectId
+															<< " : " << __FILE__
+															<< " [" << __LINE__ << "]"
+															<< std::endl;
+														FL_ERR(_log, oss.str());
+													}
 												}
 											}
 
@@ -512,7 +529,7 @@ namespace FIFE {
 												if (isNarrow != 0) {
 													cache->addNarrowCell(cell);
 												}
-												
+												// add cost with given id to cell
 												for (const TiXmlElement* costElement = cellElement->FirstChildElement("cost"); costElement; costElement = costElement->NextSiblingElement("cost")) {
 													const std::string* costId = costElement->Attribute(std::string("id"));
 													double cost = 1.0;
@@ -520,6 +537,13 @@ namespace FIFE {
 													if (costId && success == TIXML_SUCCESS) {
 														cache->registerCost(*costId, cost);
 														cache->addCellToCost(*costId, cell);
+													}
+												}
+												// add area to cell
+												for (const TiXmlElement* areaElement = cellElement->FirstChildElement("area"); areaElement; areaElement = areaElement->NextSiblingElement("area")) {
+													const std::string* areaId = areaElement->Attribute(std::string("id"));
+													if (areaId) {
+														cache->addCellToArea(*areaId, cell);
 													}
 												}
 											}
@@ -554,10 +578,12 @@ namespace FIFE {
 												for (const TiXmlElement* transitionElement = cellElement->FirstChildElement("transition"); transitionElement; transitionElement = transitionElement->NextSiblingElement("transition")) {
 													int targetX = 0;
 													int targetY = 0;
+													int targetZ = 0;
 													success = transitionElement->QueryIntAttribute("x", &targetX);
 													success &= transitionElement->QueryIntAttribute("y", &targetY);
+													transitionElement->QueryIntAttribute("z", &targetZ);
 													if (success == TIXML_SUCCESS) {
-														ModelCoordinate mc(targetX, targetY);
+														ModelCoordinate mc(targetX, targetY, targetZ);
 														Layer* targetLayer = NULL;
 														const std::string* targetLayerId = transitionElement->Attribute(std::string("id"));
 														if (targetLayerId) {
@@ -580,6 +606,73 @@ namespace FIFE {
 						}
 					}
 
+					for (const TiXmlElement* triggerElements = root->FirstChildElement("triggers"); triggerElements; triggerElements = triggerElements->NextSiblingElement("triggers")) {
+						TriggerController* triggerController = map->getTriggerController();
+						for (const TiXmlElement* triggerElement = triggerElements->FirstChildElement("trigger"); triggerElement; triggerElement = triggerElement->NextSiblingElement("trigger")) {
+							const std::string* triggerName = triggerElement->Attribute(std::string("name"));
+							int triggered = 0;
+							int allInstances = 0;
+							triggerElement->QueryIntAttribute("triggered", &triggered);
+							triggerElement->QueryIntAttribute("all_instances", &allInstances);
+							
+							Trigger* trigger = triggerController->createTrigger(*triggerName);
+							if (triggered > 0) {
+								trigger->setTriggered();
+							}
+							if (allInstances > 0) {
+								trigger->enableForAllInstances();
+							}
+
+							const std::string* instanceId = triggerElement->Attribute(std::string("attached_instance"));
+							const std::string* layerId = triggerElement->Attribute(std::string("attached_layer"));
+							if (instanceId  && layerId) {
+								Layer* layer = map->getLayer(*layerId);
+								if (layer) {
+									Instance* instance = layer->getInstance(*instanceId);
+									if (instance) {
+										trigger->attach(instance);
+									}
+								}
+							}
+							for (const TiXmlElement* assignElement = triggerElement->FirstChildElement("assign"); assignElement; assignElement = assignElement->NextSiblingElement("assign")) {
+								layerId = assignElement->Attribute(std::string("layer_id"));
+								if (!layerId) {
+									continue;
+								}
+								int x = 0;
+								int y = 0;
+								assignElement->QueryIntAttribute("x", &x);
+								assignElement->QueryIntAttribute("y", &y);
+								Layer* layer = map->getLayer(*layerId);
+								if (layer) {
+									trigger->assign(layer, ModelCoordinate(x, y));
+								}
+							}
+							for (const TiXmlElement* enabledElement = triggerElement->FirstChildElement("enabled"); enabledElement; enabledElement = enabledElement->NextSiblingElement("enabled")) {
+								layerId = enabledElement->Attribute(std::string("layer_id"));
+								instanceId = enabledElement->Attribute(std::string("instance_id"));
+								if (!instanceId || !layerId) {
+									continue;
+								}
+								Layer* layer = map->getLayer(*layerId);
+								if (layer) {
+									Instance* instance = layer->getInstance(*instanceId);
+									if (instance) {
+										trigger->enableForInstance(instance);
+									}
+								}
+							}
+							for (const TiXmlElement* conditionElement = triggerElement->FirstChildElement("condition"); conditionElement; conditionElement = conditionElement->NextSiblingElement("condition")) {
+								int conditionId = -1;
+								conditionElement->QueryIntAttribute("id", &conditionId);
+								if (conditionId != -1) {
+									trigger->addTriggerCondition(static_cast<TriggerCondition>(conditionId));
+								}
+							}
+						}
+					}
+
+
 					for (const TiXmlElement* cameraElement = root->FirstChildElement("camera"); cameraElement; cameraElement = cameraElement->NextSiblingElement("camera")) {
 						const std::string* cameraId = cameraElement->Attribute(std::string("id"));
 						const std::string* refLayerId = cameraElement->Attribute(std::string("ref_layer_id"));
@@ -593,11 +686,11 @@ namespace FIFE {
 							double tilt = 0.0;
 							double zoom = 1.0;
 							double rotation = 0.0;
-							double ztoy = 0.0;
+							double zToY = 0.0;
 							cameraElement->QueryDoubleAttribute("tilt", &tilt);
 							cameraElement->QueryDoubleAttribute("zoom", &zoom);
 							cameraElement->QueryDoubleAttribute("rotation", &rotation);
-							cameraElement->QueryDoubleAttribute("ztoy", &ztoy);
+							success = cameraElement->QueryDoubleAttribute("ztoy", &zToY);
 
 							const std::string* viewport = cameraElement->Attribute(std::string("viewport"));
 
@@ -648,14 +741,16 @@ namespace FIFE {
 								cam->setRotation(rotation);
 								cam->setTilt(tilt);
 								cam->setZoom(zoom);
-								cam->setZtoY(ztoy);
+								if (success == TIXML_SUCCESS) {
+									cam->setZToY(zToY);
+								}
 
-                                // active instance renderer for camera
-                                InstanceRenderer* instanceRenderer = InstanceRenderer::getInstance(cam);
-                                if (instanceRenderer)
-                                {
-                                    instanceRenderer->activateAllLayers(map);
-                                }
+								// active instance renderer for camera
+								InstanceRenderer* instanceRenderer = InstanceRenderer::getInstance(cam);
+								if (instanceRenderer)
+								{
+									instanceRenderer->activateAllLayers(map);
+								}
 							}
 						}
 
@@ -669,118 +764,138 @@ namespace FIFE {
 		return map;
 	}
 
-    void MapLoader::setObjectLoader(const FIFE::ObjectLoaderPtr& objectLoader) {
-        assert(objectLoader);
+	void MapLoader::setObjectLoader(const FIFE::ObjectLoaderPtr& objectLoader) {
+		assert(objectLoader);
 
-        m_objectLoader = objectLoader;
-    }
+		m_objectLoader = objectLoader;
+	}
 
+	FIFE::ObjectLoaderPtr MapLoader::getObjectLoader() {
+		return m_objectLoader;
+	}
 
-    void MapLoader::setAnimationLoader(const FIFE::AnimationLoaderPtr& animationLoader) {
-        assert(animationLoader);
+	void MapLoader::setAnimationLoader(const FIFE::AnimationLoaderPtr& animationLoader) {
+		assert(animationLoader);
 
-        m_objectLoader->setAnimationLoader(animationLoader);
-    }
+		m_objectLoader->setAnimationLoader(animationLoader);
+	}
 
-    void MapLoader::setAtlasLoader(const FIFE::AtlasLoaderPtr& atlasLoader) {
-        assert(atlasLoader);
+	FIFE::AnimationLoaderPtr MapLoader::getAnimationLoader() {
+		if (m_objectLoader) {
+			return m_objectLoader->getAnimationLoader();
+		}
+		return FIFE::AnimationLoaderPtr();
+	}
 
-        m_atlasLoader = atlasLoader;
-    }
+	void MapLoader::setAtlasLoader(const FIFE::AtlasLoaderPtr& atlasLoader) {
+		assert(atlasLoader);
 
-    bool MapLoader::isLoadable(const std::string& filename) const {
+		m_objectLoader->setAtlasLoader(atlasLoader);
+	}
+
+	FIFE::AtlasLoaderPtr MapLoader::getAtlasLoader() {
+		if (m_objectLoader) {
+			return m_objectLoader->getAtlasLoader();
+		}
+		return FIFE::AtlasLoaderPtr();
+	}
+
+	bool MapLoader::isLoadable(const std::string& filename) const {
 		bfs::path mapPath(filename);
 
 		TiXmlDocument mapFile;
 
-        std::string mapFilename = mapPath.string();
+		std::string mapFilename = mapPath.string();
 
-        try {
-            RawData* data = m_vfs->open(mapFilename);
+		try {
+			RawData* data = m_vfs->open(mapFilename);
 
-            if (data) {
-                if (data->getDataLength() != 0) {
-                    mapFile.Parse(data->readString(data->getDataLength()).c_str());
+			if (data) {
+				if (data->getDataLength() != 0) {
+					mapFile.Parse(data->readString(data->getDataLength()).c_str());
 
-                    if (mapFile.Error()) {
-                        return false;
-                    }
+					if (mapFile.Error()) {
+						return false;
+					}
 
-                    const TiXmlElement* root = mapFile.RootElement();
+					const TiXmlElement* root = mapFile.RootElement();
 
-                    if (root) {
-                        const std::string* loaderName = root->Attribute(std::string("loader"));
+					if (root) {
+						const std::string* loaderName = root->Attribute(std::string("loader"));
 
-                        // if the file does not specify a loader but was opened and parsed
-                        // correctly then we know we have a compatible extension so we will
-                        // attempt to load it, if it does specify a loader then the loader
-                        // name will be checked
-                        if (!loaderName || (loaderName && *loaderName == getLoaderName())) {
-                            return true;
-                        }
-                    }
-                }
+						// if the file does not specify a loader but was opened and parsed
+						// correctly then we know we have a compatible extension so we will
+						// attempt to load it, if it does specify a loader then the loader
+						// name will be checked
+						if (!loaderName || (loaderName && *loaderName == getLoaderName())) {
+							return true;
+						}
+					}
+				}
 
-                // done with file delete the resource
-                delete data;
-                data = 0;
-            }
-        }
-        catch (NotFound& e) {
-            FL_ERR(_log, e.what());
+				// done with file delete the resource
+				delete data;
+				data = 0;
+			}
+		}
+		catch (NotFound& e) {
+			FL_ERR(_log, e.what());
 
-            return false;
-        }
+			return false;
+		}
 
-        return false;
+		return false;
 	}
 
-    void MapLoader::loadImportFile(const std::string& file, const std::string& directory) {
-        if (!file.empty()) {
-            bfs::path importFilePath(directory);
-            importFilePath /= file;
+	void MapLoader::loadImportFile(const std::string& file, const std::string& directory) {
+		if (!file.empty()) {
+			bfs::path importFilePath(directory);
+			importFilePath /= file;
 
-            std::string importFileString = importFilePath.string();
-            if (m_objectLoader && m_objectLoader->isLoadable(importFileString)) {
-                m_objectLoader->load(importFileString);
-            }
-            else if (m_atlasLoader && m_atlasLoader->isLoadable(importFileString)) {
-                m_atlasLoader->load(importFileString);
-            }
-        }
-    }
+			std::string importFileString = importFilePath.string();
+			if (m_objectLoader && m_objectLoader->getAtlasLoader() && m_objectLoader->getAtlasLoader()->isLoadable(importFileString)) {
+				m_objectLoader->getAtlasLoader()->loadMultiple(importFileString);
+			}
+			if (m_objectLoader && m_objectLoader->getAnimationLoader() && m_objectLoader->getAnimationLoader()->isLoadable(importFileString)) {
+				m_objectLoader->getAnimationLoader()->loadMultiple(importFileString);
+			}
+			if (m_objectLoader && m_objectLoader->isLoadable(importFileString)) {
+				m_objectLoader->load(importFileString);
+			}
+		}
+	}
 
-    void MapLoader::loadImportDirectory(const std::string& directory) {
-        if (!directory.empty()) {
-            bfs::path importDirectory(directory);
-            std::string importDirectoryString = importDirectory.string();
+	void MapLoader::loadImportDirectory(const std::string& directory) {
+		if (!directory.empty()) {
+			bfs::path importDirectory(directory);
+			std::string importDirectoryString = importDirectory.string();
 
-            std::set<std::string> files = m_vfs->listFiles(importDirectoryString);
+			std::set<std::string> files = m_vfs->listFiles(importDirectoryString);
 
-            // load all xml files in the directory
-            std::set<std::string>::iterator iter;
-            for (iter = files.begin(); iter != files.end(); ++iter) {
-                // TODO - vtchill - may need a way to allow clients to load things other
-                // than .xml and .zip files
-                std::string ext = bfs::extension(*iter);
-                if (ext == ".xml" || ext == ".zip") {
-                    loadImportFile(*iter, importDirectoryString);
-                }
-            }
+			// load all xml files in the directory
+			std::set<std::string>::iterator iter;
+			for (iter = files.begin(); iter != files.end(); ++iter) {
+				// TODO - vtchill - may need a way to allow clients to load things other
+				// than .xml and .zip files
+				std::string ext = bfs::extension(*iter);
+				if (ext == ".xml" || ext == ".zip") {
+					loadImportFile(*iter, importDirectoryString);
+				}
+			}
 
-            std::set<std::string> nestedDirectories = m_vfs->listDirectories(importDirectoryString);
-            for (iter  = nestedDirectories.begin(); iter != nestedDirectories.end(); ++iter) {
-                // do not attempt to load anything from a .svn directory
-                if ((*iter).find(".svn") == std::string::npos) {
-                    loadImportDirectory(importDirectoryString + "/" + *iter);
-                }
-            }
-        }
-    }
+			std::set<std::string> nestedDirectories = m_vfs->listDirectories(importDirectoryString);
+			for (iter  = nestedDirectories.begin(); iter != nestedDirectories.end(); ++iter) {
+				// do not attempt to load anything from a .svn directory
+				if ((*iter).find(".svn") == std::string::npos) {
+					loadImportDirectory(importDirectoryString + "/" + *iter);
+				}
+			}
+		}
+	}
 
-    void MapLoader::addPercentDoneListener(PercentDoneListener* listener) {
-        m_percentDoneListener.addListener(listener);
-    }
+	void MapLoader::addPercentDoneListener(PercentDoneListener* listener) {
+		m_percentDoneListener.addListener(listener);
+	}
 
 	const std::string& MapLoader::getLoaderName() const {
 		return m_loaderName;

@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -51,11 +51,9 @@ namespace FIFE {
 	SubImageFont::SubImageFont(const std::string& filename, const std::string& glyphs)
 		: ImageFontBase() {
 
-		FL_LOG(_log, LMsg("guichan_image_font, loading ") << filename << " glyphs " << glyphs);
+		FL_LOG(_log, LMsg("fifechan_image_font, loading ") << filename << " glyphs " << glyphs);
 
-//prock - 504
 		ImagePtr img = ImageManager::instance()->load(filename);
-		int32_t image_id = img->getHandle();
 		SDL_Surface* surface = img->getSurface();
 		m_colorkey = RenderBackend::instance()->getColorKey();
 
@@ -65,7 +63,7 @@ namespace FIFE {
 
 		// Make sure we get 32bit RGB
 		// and copy the Pixelbuffers surface
-		SDL_Surface *tmp = SDL_CreateRGBSurface(SDL_SWSURFACE,
+		SDL_Surface *tmp = SDL_CreateRGBSurface(0,
 			surface->w,surface->h,32,
 			RMASK, GMASK, BMASK ,NULLMASK);
 
@@ -75,8 +73,7 @@ namespace FIFE {
 		// Prepare the data for extracting the glyphs.
 		uint32_t *pixels = reinterpret_cast<uint32_t*>(surface->pixels);
 
-		int32_t x, w;
-		x = 0; w=0;
+		int32_t x = 0;
 
 		SDL_Rect src;
 
@@ -96,8 +93,8 @@ namespace FIFE {
 		}
 
 		// Disable alpha blending, so that we use color keying
-		SDL_SetAlpha(surface,0,255);
-		SDL_SetColorKey(surface,SDL_SRCCOLORKEY,colorkey);
+		//SDL_SetAlpha(surface,0,255);
+		//SDL_SetColorKey(surface,SDL_SRCCOLORKEY,colorkey);
 
 		FL_DBG(_log, LMsg("image_font")
 			<< " glyph separator is "
@@ -108,7 +105,7 @@ namespace FIFE {
 		// Finally extract all glyphs
 		std::string::const_iterator text_it = glyphs.begin();
 		while(text_it != glyphs.end()) {
-			w=0;
+			int32_t w = 0;
 			while(x < surface->w && pixels[x] == separator)
 				++x;
 			if( x == surface->w )
@@ -120,7 +117,7 @@ namespace FIFE {
 			src.x = x;
 			src.w = w;
 
-			tmp = SDL_CreateRGBSurface(SDL_SWSURFACE,
+			tmp = SDL_CreateRGBSurface(0,
 					w,surface->h,32,
 					RMASK, GMASK, BMASK ,NULLMASK);
 
@@ -128,9 +125,10 @@ namespace FIFE {
 			SDL_BlitSurface(surface,&src,tmp,0);
 
 			// Disable alpha blending, so that we use colorkeying
-			SDL_SetAlpha(tmp,0,255);
-			SDL_SetColorKey(tmp,SDL_SRCCOLORKEY,colorkey);
-
+			//SDL_SetAlpha(tmp,0,255);
+			//SDL_SetColorKey(tmp,SDL_SRCCOLORKEY,colorkey);
+			SDL_SetSurfaceBlendMode(tmp, SDL_BLENDMODE_NONE);
+			SDL_SetColorKey(tmp, SDL_TRUE, colorkey);
 
 			uint32_t codepoint = utf8::next(text_it, glyphs.end());
 			m_glyphs[ codepoint ].surface = tmp;
@@ -139,14 +137,14 @@ namespace FIFE {
 		}
 
 		// Set placeholder glyph
-		// This should actually work ith utf8.
+		// This should actually work with utf8.
 		if( m_glyphs.find('?') != m_glyphs.end() ) {
 			m_placeholder = m_glyphs['?'];
 		} else {
 			m_placeholder.surface = 0;
 		}
 
-		mHeight = surface->h;
+		m_height = surface->h;
 		SDL_FreeSurface(surface);
 	}
 

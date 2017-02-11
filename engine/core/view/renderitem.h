@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -38,10 +38,23 @@ namespace FIFE {
 
 	class Instance;
 
+	class OverlayData {
+	public:
+		OverlayData();
+		~OverlayData();
+
+		// pointer to single color overlay
+		OverlayColors* colorOverlay;
+		// pointer to vector that holds animation overlay images
+		std::vector<ImagePtr>* animationOverlayImages;
+		// pointer to vector that holds color overlays for animation overlay
+		std::vector<OverlayColors*>* animationColorOverlays;
+	};
+
 	class RenderItem {
 		public:
-			RenderItem();
-
+			RenderItem(Instance* parent);
+			~RenderItem();
 			Instance* instance;
 
 			/** Returns closest matching static image for given angle
@@ -49,6 +62,39 @@ namespace FIFE {
 			* @see ObjectVisual::getStaticImageIndexByAngle
 			*/
 			int32_t getStaticImageIndexByAngle(uint32_t angle, Instance* instance);
+
+			/** Sets AnimationOverlay and if available AnimationOverlayColors.
+			 * Note: Ownership of the vectors do change.
+			*/
+			void setAnimationOverlay(std::vector<ImagePtr>* ao, std::vector<OverlayColors*>* aco);
+
+			/** Returns pointer to AnimationOverlay vector.
+			 * Returns 0 if no OverlayData or AnimationOverlay exists.
+			*/
+			std::vector<ImagePtr>* getAnimationOverlay() const;
+
+			/** Returns pointer to AnimationColorOverlay vector.
+			 * Returns 0 if no OverlayData or AnimationColorOverlay exists.
+			*/
+			std::vector<OverlayColors*>* getAnimationColorOverlay() const;
+
+			/** Sets single ColorOverlay.
+			 * Note: Ownership does not change.
+			*/
+			void setColorOverlay(OverlayColors* co);
+
+			/** Returns pointer to single ColorOverlay.
+			 * Returns 0 if no OverlayData or ColorOverlay exists.
+			*/
+			OverlayColors* getColorOverlay() const;
+
+			/** Deletes OverlayData.
+			*/
+			void deleteOverlayData();
+
+			/** Resets the important values.
+			*/
+			void reset();
 
 			// point where instance was drawn during the previous render
 			DoublePoint3D screenpoint;
@@ -59,23 +105,26 @@ namespace FIFE {
 			// dimensions of this visual during the previous render
 			Rect dimensions;
 
+			// z value for sorting or depth buffer rendering
+			float vertexZ;
+
 			// image used during previous render
 			ImagePtr image;
 
 			// current facing angle
-			int32_t facing_angle;
+			int32_t facingAngle;
 
 			// current transparency
 			uint8_t transparency;
 
-			// current instance z
-			double instance_z;
-
 			// current frame index (e.g. needed for action frame)
-			int32_t current_frame;
+			int32_t currentFrame;
+
+			// pointer to overlay data class
+			OverlayData* m_overlay;
 		private:
-			int32_t m_cached_static_img_id;
-			int32_t m_cached_static_img_angle;
+			int32_t m_cachedStaticImgId;
+			int32_t m_cachedStaticImgAngle;
 	};
 
 	typedef std::vector<RenderItem*> RenderList;

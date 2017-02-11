@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 # ####################################################################
-#  Copyright (C) 2005-2009 by the FIFE team
-#  http://www.fifengine.de
+#  Copyright (C) 2005-2017 by the FIFE team
+#  http://www.fifengine.net
 #  This file is part of FIFE.
 #
 #  FIFE is free software; you can redistribute it and/or
@@ -29,7 +29,6 @@ See the L{ApplicationBase} documentation.
 
 from fife import fife
 from fife.extensions import fifelog
-from fife.extensions import pychan
 from fife.extensions.fife_settings import Setting
 
 class ExitEventListener(fife.IKeyListener):
@@ -51,9 +50,6 @@ class ExitEventListener(fife.IKeyListener):
 		keyval = evt.getKey().getValue()
 		if keyval == fife.Key.ESCAPE:
 			self.app.quit()
-		elif keyval == fife.Key.F10:
-			pychan.manager.hook.guimanager.getConsole().toggleShowHide()
-			evt.consume()
 
 	def keyReleased(self, evt):
 		pass
@@ -61,6 +57,7 @@ class ExitEventListener(fife.IKeyListener):
 class ApplicationBase(object):
 	"""
 	ApplicationBase is an extendable class that provides a basic environment for a FIFE-based client.
+	This kind of application base does not offer GUI support.
 
 	The unextended application reads in and initializes engine settings, sets up a simple event
 	listener, and pumps the engine while listening for a quit message. Specialized applications can
@@ -73,12 +70,12 @@ class ApplicationBase(object):
 		if setting:
 			self._setting = setting
 		else:
-			self._setting =  Setting(app_name="", settings_file="./settings.xml", settings_gui_xml="")
+			self._setting =  Setting(app_name="", settings_file="./settings.xml")
 
 		self.engine = fife.Engine()
 		
 		self.initLogging()
-		self.loadSettings()	
+		self.loadSettings()
 		
 		self.engine.init()
 		
@@ -91,9 +88,6 @@ class ApplicationBase(object):
 		
 		resolutions = ["{0}x{1}".format(item[0], item[1]) for item in sorted(resolutions)[1:]] 
 		self._setting.setValidResolutions(resolutions)
-
-		pychan.init(self.engine, debug = self._finalSetting['PychanDebug'])
-		pychan.setupModalExecution(self.mainLoop,self.breakFromMainLoop)
 
 		self.quitRequested = False
 		self.breakRequested = False
@@ -120,12 +114,28 @@ class ApplicationBase(object):
 		engineSetting.setGLCompressImages(self._finalSetting['GLCompressImages'])
 		engineSetting.setGLUseFramebuffer(self._finalSetting['GLUseFramebuffer'])
 		engineSetting.setGLUseNPOT(self._finalSetting['GLUseNPOT'])
+		engineSetting.setGLUseMipmapping(self._finalSetting['GLUseMipmapping'])
+		engineSetting.setGLUseMonochrome(self._finalSetting['GLUseMonochrome'])
+		engineSetting.setGLUseDepthBuffer(self._finalSetting['GLUseDepthBuffer'])
+		engineSetting.setGLAlphaTestValue(self._finalSetting['GLAlphaTestValue'])
+		if self._finalSetting['GLTextureFiltering'] == 'None':
+			engineSetting.setGLTextureFiltering(fife.TEXTURE_FILTER_NONE)
+		elif self._finalSetting['GLTextureFiltering'] == 'Bilinear':
+			engineSetting.setGLTextureFiltering(fife.TEXTURE_FILTER_BILINEAR)
+		elif self._finalSetting['GLTextureFiltering'] == 'Trilinear':
+			engineSetting.setGLTextureFiltering(fife.TEXTURE_FILTER_TRILINEAR)
+		elif self._finalSetting['GLTextureFiltering'] == 'Anisotropic':
+			engineSetting.setGLTextureFiltering(fife.TEXTURE_FILTER_ANISOTROPIC)
 		(width, height) = self._finalSetting['ScreenResolution'].split('x')
 		engineSetting.setScreenWidth(int(width))
 		engineSetting.setScreenHeight(int(height))
 		engineSetting.setRenderBackend(self._finalSetting['RenderBackend'])
 		engineSetting.setFullScreen(self._finalSetting['FullScreen'])
+		engineSetting.setRefreshRate(self._finalSetting['RefreshRate'])
+		engineSetting.setDisplay(self._finalSetting['Display'])
+		engineSetting.setVSync(self._finalSetting['VSync'])
 		engineSetting.setVideoDriver(self._finalSetting['VideoDriver'])
+		engineSetting.setSDLDriver(self._finalSetting['RenderDriver'])
 		engineSetting.setLightingModel(self._finalSetting['Lighting'])
 
 		try:
@@ -171,8 +181,8 @@ class ApplicationBase(object):
 
 		#log to both the console and log file
 		self._log = fifelog.LogManager(self.engine,
-									   self._setting.get("FIFE", "LogToPrompt", "0"),
-									   self._setting.get("FIFE", "LogToFile", "0"))
+									   self._setting.get("FIFE", "LogToPrompt", False),
+									   self._setting.get("FIFE", "LogToFile", False))
 
 		self._log.setLevelFilter(self._setting.get("FIFE", "LogLevelFilter", fife.LogManager.LEVEL_DEBUG))
 
@@ -213,8 +223,9 @@ class ApplicationBase(object):
 		while not self.quitRequested:
 			try:
 				self.engine.pump()
-			except RuntimeError, e:
+			except fife.Exception as e:
 				print str(e)
+				self.quitRequested = True
 
 			self._pump()
 

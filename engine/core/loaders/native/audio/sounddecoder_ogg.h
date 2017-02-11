@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -27,7 +27,7 @@
 // Platform specific includes
 
 // 3rd party library includes
-#include <vorbisfile.h>
+#include <vorbis/vorbisfile.h>
 #include <boost/scoped_ptr.hpp>
 
 // FIFE includes

@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -25,6 +25,7 @@
 // Standard C++ library includes
 #include <string>
 #include <map>
+#include <algorithm>
 
 // 3rd party library includes
 #include <SDL.h>
@@ -57,10 +58,15 @@ namespace FIFE {
 	 */
 	class Camera: public IRendererListener, public IRendererContainer {
 	public:
-		enum Transform {
-			NormalTransform = 0,
-			WarpedTransform = 1
+		enum TransformType {
+			NoneTransform = 0x00,
+			TiltTransform = 0x01,
+			RotationTransform = 0x02,
+			ZoomTransform = 0x04,
+			PositionTransform = 0x08,
+			ZTransform = 0x10
 		};
+		typedef uint32_t Transform;
 
 		/** Constructor
 		 * Camera needs to be added to the view. If not done so, it is not rendered.
@@ -121,9 +127,32 @@ namespace FIFE {
 		 */
 		double getZoom() const;
 
-		void setZtoY(double ztoy);
+		/** Gets original zToY transformation value.
+		 * @return zToY value of the camera.
+		 */
+		double getOriginalZToY() const;
 
-		double getZtoY() const;
+		/** Sets zToY value for the camera and enables their use.
+		 * This means the factor which influenced the z to y transformation,
+		 * so if you set zToY=32 then 1z corresponds to 32 pixels in y direction.
+		 * @param zToY influenced the z to y transformation of the camera.
+		 */
+		void setZToY(double zToY);
+
+		/** Gets zToY value.
+		 * @return zToY value of the camera.
+		 */
+		double getZToY() const;
+
+		/** Sets z to y manipulation enabled / disabled.
+		 * @param enabled If true then the zToY value is used instead of the original matrix value.
+		 */
+		void setZToYEnabled(bool enabled);
+
+		/** Gets if z to y manipulation is enabled / disabled.
+		 * @return true if z to y manipulation is enabled, otherwise false.
+		 */
+		bool isZToYEnabled() const;
 
 		/** Sets screen cell image dimensions.
 		 * Cell image dimension is basically width and height of a bitmap, that covers
@@ -143,9 +172,13 @@ namespace FIFE {
 		*/
 		Point getCellImageDimensions(Layer* layer);
 
-		/** Gets reference scale for cell image dimensions
+		/** Gets x reference scale for cell image dimensions
 		 */
-		double getReferenceScale() const { return m_reference_scale; }
+		double getReferenceScaleX() const { return m_referenceScaleX; }
+
+		/** Gets y reference scale for cell image dimensions
+		 */
+		double getReferenceScaleY() const { return m_referenceScaleY; }
 
 		/** Gets a point that contain the visual z(z=1) difference, based on the given layer.
 		 * @return Point3D Point3D containing x, y, z
@@ -223,11 +256,18 @@ namespace FIFE {
 		ScreenPoint toScreenCoordinates(const ExactModelCoordinate& map_coords);
 
 		/** Transforms given point from map coordinates to virtual screen coordinates
-		 *  @return point in screen coordinates
+		 *  @return point in virtual screen coordinates
 		 */
 		DoublePoint3D toVirtualScreenCoordinates(const ExactModelCoordinate& map_coords);
 
+		/** Transforms given point from virtual screen coordinates to screen coordinates
+		 *  @return point in screen coordinates
+		 */
 		ScreenPoint virtualScreenToScreen(const DoublePoint3D& p);
+
+		/** Transforms given point from screen coordinates to virtual screen coordinates
+		 *  @return point in virtual screen coordinates
+		 */
 		DoublePoint3D screenToVirtualScreen(const ScreenPoint& p);
 
 		/** Sets camera enabled / disabled
@@ -237,6 +277,10 @@ namespace FIFE {
 		/** Gets if camera is enabled / disabled
 		 */
 		bool isEnabled();
+
+		/** Returns reference to RenderList.
+		 */
+		RenderList& getRenderListRef(Layer* layer);
 
 		/** Returns instances that match given screen coordinate
 		 * @param screen_coords screen coordinates to be used for hit search
@@ -392,10 +436,6 @@ namespace FIFE {
 		 */
 		void updateRenderLists();
 
-		/** Updates LayerCache if necessary
-		 */
-		void cacheUpdate(Layer* layer);
-
 		/** Gets logical cell image dimensions for given layer
 		 */
 		DoublePoint getLogicalCellDimensions(Layer* layer);
@@ -408,6 +448,10 @@ namespace FIFE {
 		 */
 		void renderOverlay();
 
+		/** Renders the layer part that is on screen as one image.
+		 */
+		void renderStaticLayer(Layer* layer, bool update);
+
 		DoubleMatrix m_matrix;
 		DoubleMatrix m_inverse_matrix;
 
@@ -419,33 +463,34 @@ namespace FIFE {
 		double m_tilt;
 		double m_rotation;
 		double m_zoom;
-		double m_ztoy;
+		double m_zToY;
+		bool m_enabledZToY;
 		Location m_location;
 		ScreenPoint m_cur_origo;
 		Rect m_viewport;
 		Rect m_mapViewPort;
 		bool m_mapViewPortUpdated;
-		bool m_view_updated;
 		uint32_t m_screen_cell_width;
 		uint32_t m_screen_cell_height;
-		double m_reference_scale;
+		double m_referenceScaleX;
+		double m_referenceScaleY;
 		bool m_enabled;
 		Instance* m_attachedto;
 		// caches calculated image dimensions for already queried & calculated layers
 		std::map<Layer*, Point> m_image_dimensions;
-		bool m_iswarped; // true, if the geometry had changed
+		// contains the geometry changes
+		Transform m_transform;
 
 		// list of renderers managed by the view
 		std::map<std::string, RendererBase*> m_renderers;
 		std::list<RendererBase*> m_pipeline;
 		// false, if view has not been updated
 		bool m_updated;
-		bool m_need_update;
 
 		RenderBackend* m_renderbackend;
 
 		// caches layer -> instances structure between renders e.g. to fast query of mouse picking order
-		t_layer_to_instances m_layer_to_instances;
+		t_layer_to_instances m_layerToInstances;
 
 		std::map<Layer*,LayerCache*> m_cache;
 		MapObserver* m_map_observer;

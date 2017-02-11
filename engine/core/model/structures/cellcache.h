@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2012 by the FIFE team                              *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
  *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
@@ -76,7 +76,7 @@ namespace FIFE {
 		/** Returns all cells of this zone.
 		 * @return A const reference to a set that contains all cells of this zone.
 		 */
-		const std::set<Cell*>& getCells();
+		const std::set<Cell*>& getCells() const;
 
 		/** Remove all cells from zone but does not alter the cells.
 		 */
@@ -85,12 +85,12 @@ namespace FIFE {
 		/** Returns the zone identifier.
 		 * @return A unsigned integer with the identifier.
 		 */
-		uint32_t getId();
+		uint32_t getId() const;
 
 		/** Returns the number of cells.
 		 * @return A unsigned integer with the number of cells.
 		 */
-		uint32_t getCellCount();
+		uint32_t getCellCount() const;
 
 		/** Returns transistion cells of this zone.
 		 * @param layer A pointer to the layer which should be the target of the transition. If NULL all transistions be returned.
@@ -127,6 +127,12 @@ namespace FIFE {
 				the cache size is adjusted.
 			 */
 			void resize();
+
+			/** Checks the given size and if the size is different with current size then
+				the cache is adjusted.
+			 * @param rec A rect that contains the new size in layer coordinates.
+			 */
+			void resize(const Rect& rec);
 
 			/** Creates cells for this CellCache based on the size of the assigned layer.
 			 */
@@ -169,6 +175,11 @@ namespace FIFE {
 			 * @param interact A pointer to the interact layer.
 			 */
 			void addInteractOnRuntime(Layer* interact);
+
+			/** Removes a interact layer from the CellCache on runtime and sets all needed layer properties.
+			 * @param interact A pointer to the interact layer.
+			 */
+			void removeInteractOnRuntime(Layer* interact);
 
 			/** Returns change listener.
 			 * @return A pointer to the change listener.
@@ -214,7 +225,7 @@ namespace FIFE {
 			int32_t convertCoordToInt(const ModelCoordinate& coord) const;
 			
 			/** Convertes unique identifier to coordinate.
-			 * @param coord A const reference the integer id which should be converted.
+			 * @param cell A const reference to the integer id which should be converted.
 			 * @return A ModelCoordinate, contain the cell coordinate.
 			 */
 			ModelCoordinate convertIntToCoord(const int32_t cell) const;
@@ -223,6 +234,16 @@ namespace FIFE {
 			 * @return A integer value, the number of cells.
 			 */
 			int32_t getMaxIndex() const;
+
+			/** Sets maximal z range for neighbors.
+			 * @param z The maximal z range as int.
+			 */
+			void setMaxNeighborZ(int32_t z);
+
+			/** Gets maximal z range for neighbors. By default disabled with the value -1.
+			 * @return The maximal z range as int.
+			 */
+			int32_t getMaxNeighborZ();
 
 			/** Sets whether the CellCache need to be updated.
 			 * @param updated A boolean, true means no update is needed, false indicates a update.
@@ -254,6 +275,15 @@ namespace FIFE {
 			 * @return A vector that contain the cells.
 			 */
 			std::vector<Cell*> getCellsInCircle(const ModelCoordinate& center, uint16_t radius);
+
+			/** Returns all cells in the circle segment.
+			 * @param center A const reference to the ModelCoordinate where the center of the circle is.
+			 * @param radius A unsigned integer, radius of the circle.
+			 * @param sangle A interger, start angle of the segment.
+			 * @param eangle A interger, end angle of the segment.
+			 * @return A vector that contain the cells.
+			 */
+			std::vector<Cell*> getCellsInCircleSegment(const ModelCoordinate& center, uint16_t radius, int32_t sangle, int32_t eangle);
 
 			/** Adds a cost with the given id and value.
 			 * @param costId A const reference to a string that refs to the cost id.
@@ -503,51 +533,79 @@ namespace FIFE {
 
 			/** Adds a cell to a specific area group. With an area you can group cells without the need
 			 *	of checking the underlying instances or similar.
-			 * @param A const reference to string that contains the area id.
-			 * @param A pointer to the cell which should be added.
+			 * @param id A const reference to string that contains the area id.
+			 * @param cell A pointer to the cell which should be added.
 			 */
 			void addCellToArea(const std::string& id, Cell* cell);
 
 			/** Adds few cell to a specific area group. With an area you can group cells without the need
 			 *	of checking the underlying instances or similar.
-			 * @param A const reference to string that contains the area id.
-			 * @param A const reference to vector which contains the cells.
+			 * @param id A const reference to string that contains the area id.
+			 * @param cells A const reference to vector which contains the cells.
 			 */
 			void addCellsToArea(const std::string& id, const std::vector<Cell*>& cells);
 
 			/** Removes the cell from all areas.
-			 * @param A pointer to the cell which should be removed.
+			 * @param cell A pointer to the cell which should be removed.
 			 */
 			void removeCellFromArea(Cell* cell);
 
 			/** Removes the cell from a area.
-			 * @param A const reference to string that contains the area id.
-			 * @param A pointer to the cell which should be removed.
+			 * @param id A const reference to string that contains the area id.
+			 * @param cell A pointer to the cell which should be removed.
 			 */
 			void removeCellFromArea(const std::string& id, Cell* cell);
 
 			/** Removes few cells from a area.
-			 * @param A const reference to string that contains the area id.
-			 * @param A const reference to vector which contains the cells.
+			 * @param id A const reference to string that contains the area id.
+			 * @param cells A const reference to vector which contains the cells.
 			 */
 			void removeCellsFromArea(const std::string& id, const std::vector<Cell*>& cells);
 
 			/** Removes a area.
-			 * @param A const reference to string that contains the area id.
+			 * @param id A const reference to string that contains the area id.
 			 */
 			void removeArea(const std::string& id);
 
 			/** Checks whether the area exists.
-			 * @param A const reference to string that contains the area id.
+			 * @param id A const reference to string that contains the area id.
 			 * @return A boolean, true if the area id exists, otherwise false.
 			 */
 			bool existsArea(const std::string& id);
 
+			/** Returns all area ids.
+			 * @return A vector that contains the area ids.
+			 */
+			std::vector<std::string> getAreas();
+
+			/** Returns all areas of a cell.
+			 * @param cell A pointer to the cell.
+			 * @return A vector that contains the area ids.
+			 */
+			std::vector<std::string> getCellAreas(Cell* cell);
+
 			/** Returns all cells of an area.
-			 * @param A const reference to string that contains the area id.
+			 * @param id A const reference to string that contains the area id.
 			 * @return A vector that contains the cells from the area.
 			 */
 			std::vector<Cell*> getAreaCells(const std::string& id);
+
+			/** Returns true if cell is part of the area, otherwise false.
+			 * @param id A const reference to string that contains the area id.
+			 * @param cell A pointer to the cell which is used for the check.
+			 * @return A boolean, true if the cell is part of the area, otherwise false.
+			*/
+			bool isCellInArea(const std::string& id, Cell* cell);
+
+			/** Sets the cache size to static so that automatic resize is disabled.
+			 * @param staticSize A boolean, true if the cache size is static, otherwise false.
+			 */
+			void setStaticSize(bool staticSize);
+
+			/** Returns if the cache size is static.
+			 * @return A boolean, true if the cache size is static, otherwise false.
+			 */
+			bool isStaticSize();
 
 			void setBlockingUpdate(bool update);
 			void setFowUpdate(bool update);
@@ -588,8 +646,16 @@ namespace FIFE {
 			//! cache height
 			uint32_t m_height;
 
+			//! max z value for neighbors
+			int32_t m_neighborZ;
+
+			//! indicates blocking update
 			bool m_blockingUpdate;
+
+			//! indicates fow update
 			bool m_fowUpdate;
+
+			//! indicates size update
 			bool m_sizeUpdate;
 
 			//! need update
@@ -597,6 +663,9 @@ namespace FIFE {
 
 			//! is automatic seach enabled
 			bool m_searchNarrow;
+
+			//! is automatic size update enabled/disabled
+			bool m_staticSize;
 
 			//! cells with transitions
 			std::vector<Cell*> m_transitions;

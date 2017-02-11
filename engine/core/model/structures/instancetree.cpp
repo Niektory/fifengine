@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -58,7 +58,6 @@ namespace FIFE {
 	}
 
 	void InstanceTree::removeInstance(Instance* instance) {
-		ModelCoordinate coords = instance->getLocationRef().getLayerCoordinates();
 		InstanceTreeNode * node = m_reverse[instance];
 		if( !node ) {
 			FL_WARN(_log, "InstanceTree::removeInstance() - Instance not part of tree.");
@@ -97,6 +96,7 @@ namespace FIFE {
 	}
 
 	void InstanceTree::findInstances(const ModelCoordinate& point, int32_t w, int32_t h, InstanceTree::InstanceList& list) {
+		list.clear();
 		InstanceTreeNode * node = m_tree.find_container(point.x, point.y, w, h);
 		Rect rect(point.x, point.y, w, h);
 		InstanceListCollector collector(list,rect);

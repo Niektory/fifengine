@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2012 by the FIFE team                              *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
  *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
@@ -51,7 +51,7 @@ namespace FIFE {
 		const ModelCoordinate a_coord = a.getLayerCoordinates();
 		const ModelCoordinate b_coord = b.getLayerCoordinates();
 
-		return (a_coord == b_coord) && sameLayer;
+		return (a_coord.x == b_coord.x) && (a_coord.y == b_coord.y) && sameLayer;
 	}
 
 	void RoutePather::update() {
@@ -202,6 +202,38 @@ namespace FIFE {
 				}
 			}
 		}
+		
+		if (route->isAreaLimited()) {
+			// check if target or neighbors are on one of the areas
+			bool sameAreas = false;
+			const std::list<std::string> areas = route->getLimitedAreas();
+			std::list<std::string>::const_iterator area_it = areas.begin();
+			for (; area_it != areas.end(); ++area_it) {
+				if (endCache->isCellInArea(*area_it, endCell)) {
+					sameAreas = true;
+					break;
+				}
+			}
+			if (!sameAreas) {
+				const std::vector<Cell*>& neighbors = endCell->getNeighbors();
+				if (neighbors.empty()) {
+					return false;
+				}
+				area_it = areas.begin();
+				for (; area_it != areas.end(); ++area_it) {
+					std::vector<Cell*>::const_iterator neigh_it = neighbors.begin();
+					for (; neigh_it != neighbors.end(); ++neigh_it) {
+						if (endCache->isCellInArea(*area_it, *neigh_it)) {
+							sameAreas = true;
+							break;
+						}
+					}
+				}
+			}
+			if (!sameAreas) {
+				return false;
+			}
+		}
 
 		int32_t sessionId = route->getSessionId();
 		if (sessionId == -1) {
@@ -236,7 +268,7 @@ namespace FIFE {
 		return true;
 	}
 
-	bool RoutePather::followRoute(const Location& current, Route* route, double speed, Location* nextLocation) {
+	bool RoutePather::followRoute(const Location& current, Route* route, double speed, Location& nextLocation) {
 		Path path = route->getPath();
 		if (path.empty()) {
 			return false;
@@ -250,27 +282,36 @@ namespace FIFE {
 		if (!locationsEqual(current, currentNode)) {
 			// special blocker check for multicell
 			if (multiCell) {
+				int32_t oldRotation = route->getRotation();
+				// old coordinates
+				std::vector<ModelCoordinate> oldCoords = current.getLayer()->getCellGrid()->
+					toMultiCoordinates(current.getLayerCoordinates(), route->getOccupiedCells(route->getRotation()));
+				oldCoords.push_back(current.getLayerCoordinates());
 				route->setRotation(getAngleBetween(current, currentNode));
+				// new coordinates
 				std::vector<ModelCoordinate> newCoords = currentNode.getLayer()->getCellGrid()->
 					toMultiCoordinates(currentNode.getLayerCoordinates(), route->getOccupiedCells(route->getRotation()));
 				newCoords.push_back(currentNode.getLayerCoordinates());
-				const std::set<Object*>& parts = route->getObject()->getMultiParts();
+
 				std::vector<ModelCoordinate>::const_iterator nco_it = newCoords.begin();
 				for (; nco_it != newCoords.end(); ++nco_it) {
 					if (currentNode.getLayer()->cellContainsBlockingInstance(*nco_it)) {
-						std::vector<Instance*> blocker = currentNode.getLayer()->getBlockingInstances(*nco_it);
-						std::vector<Instance*>::iterator block_it = blocker.begin();
-						for (; block_it != blocker.end(); ++block_it) {
-							std::set<Object*>::const_iterator obj_it = std::find(parts.begin(), parts.end(), (*block_it)->getObject());
-							if (obj_it != parts.end() || route->getObject() == (*block_it)->getObject()) {
-								continue;
+						bool found = false;
+						std::vector<ModelCoordinate>::const_iterator oco_it = oldCoords.begin();
+						for (; oco_it != oldCoords.end(); ++oco_it) {
+							if (*oco_it == *nco_it) {
+								found = true;
+								break;
 							}
+						}
+						// if we have a blocker that is not part of the object
+						if (!found) {
 							nextBlocker = true;
-							break;
 						}
-						if (nextBlocker) {
-							break;
-						}
+					}
+					if (nextBlocker) {
+						route->setRotation(oldRotation);
+						break;
 					}
 				}
 			} else {
@@ -284,31 +325,58 @@ namespace FIFE {
 		ExactModelCoordinate instancePos = current.getMapCoordinates();
 		// if next node is blocker
 		if (nextBlocker) {
-			nextLocation->setLayerCoordinates(FIFE::doublePt2intPt(current.getExactLayerCoordinates()));
+			nextLocation.setLayerCoordinates(FIFE::doublePt2intPt(current.getExactLayerCoordinates()));
 			return false;
 		}
 		// calculate distance
+		CellCache* nodeCache = currentNode.getLayer()->getCellCache();
+		CellGrid* nodeGrid = currentNode.getLayer()->getCellGrid();
 		ExactModelCoordinate targetPos = currentNode.getMapCoordinates();
-		CellGrid* grid = current.getLayer()->getCellGrid();
-		double dx = (targetPos.x - instancePos.x) * grid->getXScale();
-		double dy = (targetPos.y - instancePos.y) * grid->getYScale();
+		Cell* tmpCell = nodeCache->getCell(currentNode.getLayerCoordinates());
+		if (tmpCell) {
+			targetPos.z = tmpCell->getLayerCoordinates().z + nodeGrid->getZShift();
+		}
+		double dx = (targetPos.x - instancePos.x) * nodeGrid->getXScale();
+		double dy = (targetPos.y - instancePos.y) * nodeGrid->getYScale();
 		double distance = Mathd::Sqrt(dx * dx + dy * dy);
-
 		// cell speed multi
 		double multi;
-		CellCache* cache = current.getLayer()->getCellCache();
-		if (cache->getCellSpeedMultiplier(current.getLayerCoordinates(), multi)) {
+		if (nodeCache->getCellSpeedMultiplier(current.getLayerCoordinates(), multi)) {
 			speed *= multi;
 		} else {
-			speed *= cache->getDefaultSpeedMultiplier();
+			speed *= nodeCache->getDefaultSpeedMultiplier();
 		}
 		bool pop = false;
 		if (speed > distance) {
 			speed = distance;
 			pop = true;
 		}
-
 		if (!Mathd::Equal(distance, 0.0) && !pop) {
+			Location prevNode = route->getPreviousNode();
+			CellCache* prevCache = prevNode.getLayer()->getCellCache();
+			CellGrid* prevGrid = prevNode.getLayer()->getCellGrid();
+			ExactModelCoordinate prevPos = route->getPreviousNode().getMapCoordinates();
+			tmpCell = prevCache->getCell(prevNode.getLayerCoordinates());
+			if (tmpCell) {
+				prevPos.z = tmpCell->getLayerCoordinates().z + prevGrid->getZShift();
+			}
+			double cell_dz = (targetPos.z - prevPos.z);
+			if (!Mathd::Equal(cell_dz, 0.0)) {
+				double cell_dx = (targetPos.x - prevPos.x);
+				double cell_dy = (targetPos.y - prevPos.y);
+				double cell_distance = Mathd::Sqrt(cell_dx * cell_dx + cell_dy * cell_dy);
+				if (cell_dz > 0) {
+					if (locationsEqual(current, currentNode)) {
+						instancePos.z = targetPos.z;
+					} else {
+						instancePos.z = prevPos.z + cell_dz - 4*(0.5-distance/cell_distance)*(0.5-distance/cell_distance) * cell_dz;
+					}
+				} else if (cell_dz < 0) {
+					if (locationsEqual(current, currentNode)) {
+						instancePos.z = prevPos.z + 4*(0.5-distance/cell_distance)*(0.5-distance/cell_distance) * cell_dz;
+					}
+				}
+			}
 			instancePos.x += (dx / distance) * speed;
 			instancePos.y += (dy / distance) * speed;
 		} else {
@@ -316,32 +384,32 @@ namespace FIFE {
 		}
 		// pop to next node
 		if (pop) {
-			nextLocation->setMapCoordinates(targetPos);
+			nextLocation.setMapCoordinates(targetPos);
 			// if cw is false we have reached the end
 			bool cw = route->walkToNextNode();
 			// check transistion
-			CellCache* cache = nextLocation->getLayer()->getCellCache();
+			CellCache* cache = nextLocation.getLayer()->getCellCache();
 			if (cache) {
-				Cell* cell = cache->getCell(nextLocation->getLayerCoordinates());
+				Cell* cell = cache->getCell(nextLocation.getLayerCoordinates());
 				if (cell) {
 					TransitionInfo* ti = cell->getTransition();
 					if (ti) {
 						// "beam" if it is a part of path
 						if (cw &&
-							!cell->getLayer()->getCellGrid()->isAccessible(nextLocation->getLayerCoordinates(),
+							!cell->getLayer()->getCellGrid()->isAccessible(nextLocation.getLayerCoordinates(),
 							route->getCurrentNode().getLayerCoordinates())) {
 							if (ti->m_difflayer) {
-								nextLocation->setLayer(ti->m_layer);
+								nextLocation.setLayer(ti->m_layer);
 							}
-							nextLocation->setLayerCoordinates(ti->m_mc);
+							nextLocation.setLayerCoordinates(ti->m_mc);
 							return cw;
 						// immediate "beam"
 						} else if (ti->m_immediate) {
 							if (ti->m_difflayer) {
-								nextLocation->setLayer(ti->m_layer);
+								nextLocation.setLayer(ti->m_layer);
 							}
-							nextLocation->setLayerCoordinates(ti->m_mc);
-							route->setEndNode(*nextLocation);
+							nextLocation.setLayerCoordinates(ti->m_mc);
+							route->setEndNode(nextLocation);
 							return false;
 						}
 					}
@@ -357,7 +425,7 @@ namespace FIFE {
 			}
 			return cw;
 		}
-		nextLocation->setMapCoordinates(instancePos);
+		nextLocation.setMapCoordinates(instancePos);
 
 		return true;
 	}

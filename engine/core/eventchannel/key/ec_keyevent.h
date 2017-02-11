@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -84,7 +84,7 @@ namespace FIFE {
 		virtual bool isConsumed() const { return InputEvent::isConsumed(); }
 		virtual void consumedByWidgets() { InputEvent::consumedByWidgets(); }
 		virtual bool isConsumedByWidgets() const { return InputEvent::isConsumedByWidgets(); }
-		virtual IEventSource* getSource() { return InputEvent::getSource(); }
+		virtual IEventSource* getSource() const { return InputEvent::getSource(); }
 		virtual void setSource(IEventSource* source) { InputEvent::setSource(source); }
 		virtual int32_t getTimeStamp() const { return InputEvent::getTimeStamp(); }
 		virtual void setTimeStamp(int32_t timestamp ) { InputEvent::setTimeStamp(timestamp); }

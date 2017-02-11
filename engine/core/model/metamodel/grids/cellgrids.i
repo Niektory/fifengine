@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -30,9 +30,11 @@
 
 namespace std {
 	%template(ModelCoordinateVector) vector<FIFE::ModelCoordinate>;
+	%template(ExactModelCoordinateVector) vector<FIFE::ExactModelCoordinate>;
 }
 
 namespace FIFE {
+	%apply std::vector<ExactModelCoordinate> &OUTPUT { std::vector<ExactModelCoordinate>& vtx };
 	class CellGrid {
 	public:
 		CellGrid();
@@ -48,7 +50,9 @@ namespace FIFE {
 		virtual ExactModelCoordinate toMapCoordinates(const ExactModelCoordinate& layer_coords) = 0;
 		virtual ModelCoordinate toLayerCoordinates(const ExactModelCoordinate& map_coord) = 0;
 		virtual ExactModelCoordinate toExactLayerCoordinates(const ExactModelCoordinate& map_coord) = 0;
+		virtual ModelCoordinate toLayerCoordinatesFromExactLayerCoordinates(const ExactModelCoordinate& exact_layer_coords) = 0;
 		virtual void getVertices(std::vector<ExactModelCoordinate>& vtx, const ModelCoordinate& cell) = 0;
+		virtual std::vector<ModelCoordinate> getCoordinatesInLine(const ModelCoordinate& start, const ModelCoordinate& end) = 0;
 		void setXShift(const double& xshift);
 		const double getXShift() const;
 		void setYShift(const double yshift);
@@ -57,8 +61,10 @@ namespace FIFE {
 		const double getZShift() const;
 		void setXScale(const double scale);
 		void setYScale(const double scale);
+		void setZScale(const double scale);
 		const double getXScale() const;
 		const double getYScale() const;
+		const double getZScale() const;
 		void setRotation(const double rotation);
 		const double getRotation() const;
 	};
@@ -76,7 +82,9 @@ namespace FIFE {
 		ExactModelCoordinate toMapCoordinates(const ExactModelCoordinate& layer_coords);
 		ModelCoordinate toLayerCoordinates(const ExactModelCoordinate& map_coord);
 		ExactModelCoordinate toExactLayerCoordinates(const ExactModelCoordinate& map_coord);
+		ModelCoordinate toLayerCoordinatesFromExactLayerCoordinates(const ExactModelCoordinate& exact_layer_coords);
 		void getVertices(std::vector<ExactModelCoordinate>& vtx, const ModelCoordinate& cell);
+		std::vector<ModelCoordinate> getCoordinatesInLine(const ModelCoordinate& start, const ModelCoordinate& end);
 	};
 
 	class SquareGrid: public CellGrid {
@@ -92,6 +100,8 @@ namespace FIFE {
 		ExactModelCoordinate toMapCoordinates(const ExactModelCoordinate& layer_coords);
 		ModelCoordinate toLayerCoordinates(const ExactModelCoordinate& map_coord);
 		ExactModelCoordinate toExactLayerCoordinates(const ExactModelCoordinate& map_coord);
+		ModelCoordinate toLayerCoordinatesFromExactLayerCoordinates(const ExactModelCoordinate& exact_layer_coords);
 		void getVertices(std::vector<ExactModelCoordinate>& vtx, const ModelCoordinate& cell);
+		std::vector<ModelCoordinate> getCoordinatesInLine(const ModelCoordinate& start, const ModelCoordinate& end);
 	};
 }

@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -87,6 +87,18 @@ namespace FIFE {
 		 * @param evt MouseEvent that describes the event.
 		 */
 		virtual void mouseWheelMovedDown(MouseEvent& evt) = 0;
+
+		/**
+		 * Called when the mouse wheel has moved right on the event source area.
+		 * @param evt describes the event.
+		 */
+		virtual void mouseWheelMovedRight(MouseEvent& evt) = 0;
+
+		/**
+		 * Called when the mouse wheel has moved left on the event source area.
+		 * @param evt MouseEvent that describes the event.
+		 */
+		virtual void mouseWheelMovedLeft(MouseEvent& evt) = 0;
 
 		/**
 		 * Called when the mouse has moved in the event source area and no mouse button

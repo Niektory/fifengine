@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2012 by the FIFE team                              *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
  *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
@@ -29,6 +29,7 @@
 // Second block: files included from the same folder
 #include "util/log/logger.h"
 #include "model/metamodel/object.h"
+#include "model/structures/layer.h"
 #include "model/structures/location.h"
 
 #include "route.h"
@@ -45,10 +46,10 @@ namespace FIFE {
 		m_sessionId(-1),
 		m_rotation(0),
 		m_replanned(false),
+		m_ignoresBlocker(false),
 		m_costId(""),
 		m_object(NULL) {
 	}
-
 
 	Route::~Route() {
 	}
@@ -164,8 +165,8 @@ namespace FIFE {
 		if (!m_path.empty()) {
 			m_status = ROUTE_SOLVED;
 			m_current = m_path.begin();
-			m_startNode = path.front();
-			m_endNode = path.back();
+			m_startNode = m_path.front();
+			m_endNode = m_path.back();
 		}
 		if (!isMultiCell()) {
 			m_replanned = false;
@@ -264,6 +265,51 @@ namespace FIFE {
 		}
 		std::vector<ModelCoordinate> coords;
 		return coords;
+	}
+
+	int32_t Route::getZStepRange() {
+		if (!m_object) {
+			return -1;
+		}
+		return m_object->getZStepRange();
+	}
+
+	bool Route::isAreaLimited() {
+		if (m_object) {
+			if (!m_object->getWalkableAreas().empty()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	const std::list<std::string> Route::getLimitedAreas() {
+		std::list<std::string> areas;
+		if (m_object) {
+			areas = m_object->getWalkableAreas();
+		}
+		return areas;
+	}
+
+	void Route::setDynamicBlockerIgnored(bool ignore) {
+		m_ignoresBlocker = ignore;
+	}
+
+	bool Route::isDynamicBlockerIgnored() {
+		return m_ignoresBlocker;
+	}
+
+	Path Route::getBlockingPathLocations() {
+		Path p;
+		if (!m_path.empty()) {
+			for (PathIterator it = m_path.begin(); it != m_path.end(); ++it) {
+				Layer* layer = (*it).getLayer();
+				if (layer->cellContainsBlockingInstance((*it).getLayerCoordinates())) {
+					p.push_back(*it);
+				}
+			}
+		}
+		return p;
 	}
 
 	void Route::setObject(Object* obj) {

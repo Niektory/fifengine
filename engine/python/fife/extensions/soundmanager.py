@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # ####################################################################
-#  Copyright (C) 2005-2010 by the FIFE team
+#  Copyright (C) 2005-2017 by the FIFE team
 #  http://www.fifengine.net
 #  This file is part of FIFE.
 #
@@ -44,7 +44,16 @@ Usage::
 from fife import fife
 
 import fife.extensions.fife_timer as fife_timer
-from fife.extensions.pychan.tools import callbackWithArguments as cbwa
+
+def cbwa(callback,*args,**kwargs):
+	"""
+	This was stolen from pychan.  Defined here to remove the dep
+	on pychan.
+	"""
+	def real_callback():
+		callback(*args,**kwargs)
+	return real_callback
+
 
 class SoundEmitter(object):
 	"""
@@ -229,7 +238,7 @@ class SoundManager(object):
 		@return: Returns a new L{SoundEmitter} instance.
 		@rtype: L{SoundEmitter}
 		"""
-		if not self._loadedclips.has_key(filename):
+		if filename not in self._loadedclips:
 			soundclipptr = self._fifesoundclipmanager.get(filename)
 			fifeemitter = self._fifesoundmanager.createEmitter()
 			fifeemitter.thisown = 0

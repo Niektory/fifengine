@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -80,7 +80,21 @@ namespace FIFE {
 			 * @param file the filename to open (the archive-file)
 			 * @return the new VFSSource
 			 */
-			virtual VFSSource* createSource(const std::string& file) const = 0;
+			virtual VFSSource* createSource(const std::string& file) = 0;
+
+			/** Get the source instance of the path
+			 *
+			 * @param path The source path
+			 * @return A VFSSource or NULL of none is present
+			 */
+			virtual VFSSource* getSource(const std::string& path) const = 0;
+
+			/** Check whether the provider already has created a source with that path
+			*
+			* @param path The path to the source
+                        * @return true if the provider has already created a source with that path, false if not
+                        */
+			virtual bool hasSource(const std::string & path) const = 0;
 
 		private:
 

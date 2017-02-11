@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -42,6 +42,12 @@ namespace FIFE {
 		CELL_EDGES_AND_DIAGONALS
 	};	
 
+	enum SortingStrategy {
+		SORTING_CAMERA,
+		SORTING_LOCATION,
+		SORTING_CAMERA_AND_LOCATION
+	};
+
 	%feature("director") LayerChangeListener;
 	class LayerChangeListener {
 	public:
@@ -69,11 +75,15 @@ namespace FIFE {
 			Instance* createInstance(Object* object, const ExactModelCoordinate& p, const std::string& id="");
 			bool addInstance(Instance* instance, const ExactModelCoordinate& p);
 			void deleteInstance(Instance* object);
+			void removeInstance(Instance* object);
 
 			const std::vector<Instance*>& getInstances() const;
 			std::vector<Instance*> getInstances(const std::string& identifier);
 			std::vector<Instance*> getInstancesAt(Location& loc, bool use_exactcoordinates=false);
 			std::list<Instance*> getInstancesIn(Rect& rec);
+			std::vector<Instance*> getInstancesInLine(const ModelCoordinate& pt1, const ModelCoordinate& pt2);
+			std::vector<Instance*> getInstancesInCircle(const ModelCoordinate& center, uint16_t radius);
+			std::vector<Instance*> getInstancesInCircleSegment(const ModelCoordinate& center, uint16_t radius, int32_t sangle, int32_t eangle);
 			Instance* getInstance(const std::string& id);
 
 			void setInstancesVisible(bool vis);
@@ -88,6 +98,9 @@ namespace FIFE {
 			void setPathingStrategy(PathingStrategy strategy);
 			PathingStrategy getPathingStrategy();
 			
+			void setSortingStrategy(SortingStrategy strategy);
+			SortingStrategy getSortingStrategy() const;
+
 			void setWalkable(bool walkable);
 			bool isWalkable();
 			
@@ -96,14 +109,19 @@ namespace FIFE {
 			const std::string& getWalkableId();
 			
 			void addInteractLayer(Layer* layer);
+			const std::vector<Layer*>& getInteractLayers();
 			void removeInteractLayer(Layer* layer);
 
 			void createCellCache();
 			CellCache* getCellCache();
+			void destroyCellCache();
 			
 			void addChangeListener(LayerChangeListener* listener);
 			void removeChangeListener(LayerChangeListener* listener);
 			bool isChanged();
 			std::vector<Instance*>& getChangedInstances();
+
+			void setStatic(bool stati);
+			bool isStatic();
 	};
 }

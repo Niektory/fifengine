@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2011 by the FIFE team                              *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
  *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
@@ -34,6 +34,7 @@
 #include "util/math/angles.h"
 #include "util/structures/rect.h"
 #include "video/animation.h"
+#include "video/color.h"
 
 
 namespace FIFE {
@@ -41,7 +42,32 @@ namespace FIFE {
 	class Instance;
 	class Action;
 	class Image;
-	class Camera;
+
+	class OverlayColors {
+	public:
+		/** Constructors
+		 */
+		OverlayColors();
+		OverlayColors(ImagePtr image);
+		OverlayColors(AnimationPtr animation);
+
+		/** Destructor
+		 */
+		~OverlayColors();
+
+		void setColorOverlayImage(ImagePtr image);
+		ImagePtr getColorOverlayImage();
+		void setColorOverlayAnimation(AnimationPtr animation);
+		AnimationPtr getColorOverlayAnimation();
+		void changeColor(const Color& source, const Color& target);
+		const std::map<Color, Color>& getColors();
+		void resetColors();
+
+	private:
+		std::map<Color, Color> m_colorMap;
+		ImagePtr m_image;
+		AnimationPtr m_animation;
+	};
 
 	/** Base class for all 2 dimensional visual classes
 	 * Visual classes are extensions to visualize the stuff in model (e.g. instances)
@@ -54,34 +80,10 @@ namespace FIFE {
 		 */
 		virtual ~Visual2DGfx();
 
-		/** Sets transparency value for object to be visualized
-		 *  @param transparency set the transparency
-		 */
-		void setTransparency(uint8_t transparency) { m_transparency = transparency; }
-
-		/** Gets current transparency value (0-255)
-		 *  @return current transparency value
-		 */
-		uint32_t getTransparency() { return m_transparency; }
-
-		/** Sets visibility value for object to be visualized
-		 *  @param visible is object visible or not
-		 */
-		void setVisible(bool visible) { m_visible = visible; }
-
-		/** Is instance visible or not
-		 *  @return is instance visible or not
-		 */
-		uint32_t isVisible() { return m_visible; }
-
 	protected:
 		/** Constructor
 		 */
 		Visual2DGfx();
-
-		uint8_t m_transparency;
-		uint8_t m_visible;
-
 	};
 
 	/** Object visual contains data that is needed for visualizing objects
@@ -112,6 +114,19 @@ namespace FIFE {
 		 */
 		int32_t getStaticImageIndexByAngle(int32_t angle);
 
+		/** Adds new static color overlay with given angle (degrees).
+		 */
+		void addStaticColorOverlay(uint32_t angle, const OverlayColors& colors);
+
+		/** Returns closest matching static color overlay for given angle
+		 * @return pointer to OverlayColor class
+		 */
+		OverlayColors* getStaticColorOverlay(int32_t angle);
+
+		/** Removes a static color overlay with given angle (degrees).
+		 */
+		void removeStaticColorOverlay(int32_t angle);
+
 		/** Returns closest matching image angle for given angle
 		 * @return closest matching angle
 		 */
@@ -121,12 +136,20 @@ namespace FIFE {
 		 */
 		void getStaticImageAngles(std::vector<int32_t>& angles);
 
+		/** Indicates if there exists a color overlay.
+		 */
+		bool isColorOverlay() { return !m_colorOverlayMap.empty(); }
+
 	private:
 		/** Constructor
 		 */
 		ObjectVisual();
 
 		type_angle2id m_angle2img;
+		
+		typedef std::map<uint32_t, OverlayColors> AngleColorOverlayMap;
+		AngleColorOverlayMap m_colorOverlayMap;
+		type_angle2id m_map;
 	};
 
 
@@ -142,23 +165,46 @@ namespace FIFE {
 		 */
 		virtual ~InstanceVisual();
 
+		/** Sets transparency value for object to be visualized
+		 *  @param transparency set the transparency
+		 */
+		void setTransparency(uint8_t transparency);
+
+		/** Gets current transparency value (0-255)
+		 *  @return current transparency value
+		 */
+		uint8_t getTransparency();
+
+		/** Sets visibility value for object to be visualized
+		 *  @param visible is object visible or not
+		 */
+		void setVisible(bool visible);
+
+		/** Is instance visible or not
+		 *  @return is instance visible or not
+		 */
+		bool isVisible();
+
 		/** Sets stack position of the instance
 		 *  Stack position is used to define the order in which instances residing
 		 *  in the same location are drawn
 		 *  @param stackposition new stack position
 		 */
-		void setStackPosition(int32_t stackposition) { m_stackposition = stackposition; }
+		void setStackPosition(int32_t stackposition);
 
 		/** Gets current stack position of instance
 		 *  @return current stack position
 		 */
-		int32_t getStackPosition() { return m_stackposition; }
+		int32_t getStackPosition();
 
 	private:
 		/** Constructor
 		 */
 		InstanceVisual();
+		uint8_t m_transparency;
+		bool m_visible;
 		int32_t m_stackposition;
+		Instance* m_instance;
 	};
 
 	/** Action visual contains data that is needed to visualize different actions on screen
@@ -182,9 +228,64 @@ namespace FIFE {
 		 */
 		AnimationPtr getAnimationByAngle(int32_t angle);
 
+		/** Adds new animation overlay with given angle (degrees) and order
+		 */
+		void addAnimationOverlay(uint32_t angle, int32_t order, AnimationPtr animationptr);
+
+		/** Gets map with animations closest to given angle
+		 * @return animation map
+		 */
+		std::map<int32_t, AnimationPtr> getAnimationOverlay(int32_t angle);
+
+		/** Removes animation overlay with given angle (degrees) and order
+		 */
+		void removeAnimationOverlay(uint32_t angle, int32_t order);
+
+		/** Adds new color overlay with given angle (degrees) and colors.
+		 * Note: Works only for single animations not for AnimationOverlays. (order is missing)
+		 */
+		void addColorOverlay(uint32_t angle, const OverlayColors& colors);
+
+		/** Gets OverlayColors for given angle (degrees).
+		 * @return pointer to OverlayColors or Null
+		 */
+		OverlayColors* getColorOverlay(int32_t angle);
+
+		/** Removes color overlay with given angle (degrees).
+		 */
+		void removeColorOverlay(int32_t angle);
+
+		/** Adds new color overlay with given angle (degrees), order and colors.
+		 * Note: Works only for AnimationOverlays.
+		 */
+		void addColorOverlay(uint32_t angle, int32_t order, const OverlayColors& colors);
+
+		/** Gets OverlayColors for given angle (degrees) and order.
+		 * @return pointer to OverlayColors or Null
+		 */
+		OverlayColors* getColorOverlay(int32_t angle, int32_t order);
+
+		/** Removes color overlay with given angle (degrees) and order.
+		 */
+		void removeColorOverlay(int32_t angle, int32_t order);
+
 		/** Returns list of available angles for this Action
 		 */
 		void getActionImageAngles(std::vector<int32_t>& angles);
+
+		/** Convertes animations and optional color overlay to default animation overlay.
+		 * The default order value for both is 0. The old data remain, so if you remove the animation overlay
+		 * the old plain animations and colors be used again.
+		 */
+		void convertToOverlays(bool color);
+
+		/** Returns true if it exists a animation overlay, otherwise false.
+		 */
+		bool isAnimationOverlay() { return !m_animationOverlayMap.empty(); }
+
+		/** Returns true if it exists a color overlay, otherwise false.
+		 */
+		bool isColorOverlay() { return !m_colorOverlayMap.empty() || !m_colorAnimationOverlayMap.empty(); }
 
 	private:
 		/** Constructor
@@ -195,8 +296,15 @@ namespace FIFE {
 		typedef std::map<uint32_t, AnimationPtr> AngleAnimationMap;
 		AngleAnimationMap m_animation_map;
 
-		//@fixme need this map to use the getIndexByAngle() function in angles.h
-		//should fix this
+		typedef std::map<uint32_t, std::map<int32_t, AnimationPtr> > AngleAnimationOverlayMap;
+		AngleAnimationOverlayMap m_animationOverlayMap;
+
+		typedef std::map<uint32_t, OverlayColors> AngleColorOverlayMap;
+		AngleColorOverlayMap m_colorOverlayMap;
+
+		typedef std::map<uint32_t, std::map<int32_t, OverlayColors> > AngleColorAnimationOverlayMap;
+		AngleColorAnimationOverlayMap m_colorAnimationOverlayMap;
+		//need this map to use the getIndexByAngle() function in angles.h
 		type_angle2id m_map;
 	};
 

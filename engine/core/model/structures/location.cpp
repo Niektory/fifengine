@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2011 by the FIFE team                              *
- *   http://www.fifengine.net                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -111,7 +111,7 @@ namespace FIFE {
 	}
 	
 	ModelCoordinate Location::getLayerCoordinates() const {
-		return ModelCoordinate(doublePt2intPt(m_exact_layer_coords));
+		return m_layer->getCellGrid()->toLayerCoordinatesFromExactLayerCoordinates(m_exact_layer_coords);
 	}
 	
 	ExactModelCoordinate Location::getMapCoordinates() const {

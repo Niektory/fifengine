@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -364,6 +364,7 @@ namespace FIFE {
 				return cofactor_maker(m0,m5,m10, m1,m6,m8, m2,m4,m9);
 			}
 
+		public:
 			union {
 				T m[16];
 				struct {

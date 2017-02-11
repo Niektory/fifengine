@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2005-2008 by the FIFE team                              *
- *   http://www.fifengine.de                                               *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
+ *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
  *   FIFE is free software; you can redistribute it and/or                 *
@@ -110,6 +110,11 @@ namespace FIFE {
 		 */
 		virtual ExactModelCoordinate toExactLayerCoordinates(const ExactModelCoordinate& map_coord) = 0;
 
+		/** Transforms given point from exact layer coordinates to cell precision layer coordinates
+		 *  @return point in layer coordinates
+		 */
+		virtual ModelCoordinate toLayerCoordinatesFromExactLayerCoordinates(const ExactModelCoordinate& exact_layer_coords) = 0;
+
 		/** Fills given point vector with vertices from selected cell
 		 *  @param vtx vertices for given cell
 		 *  @param cell cell to get vertices from
@@ -123,6 +128,13 @@ namespace FIFE {
 		 */
 		virtual std::vector<ModelCoordinate> toMultiCoordinates(const ModelCoordinate& position,
 			const std::vector<ModelCoordinate>& orig, bool reverse = false) = 0;
+
+		/** Returns point vector with coordinates for a line from start to end.
+		 * @param start The start position
+		 * @param end The end position
+		 * @return vector with points
+		 */
+		virtual std::vector<ModelCoordinate> getCoordinatesInLine(const ModelCoordinate& start, const ModelCoordinate& end) = 0;
 
 		/** Set the cellgrid x shift
 		 *  @param xshift The shift in map coords
@@ -179,6 +191,14 @@ namespace FIFE {
 			updateMatrices();
 		}
 
+		/** Set the cellgrid z-scaling
+		 *  @param scale The z-scale of cellgrid
+		 */
+		void setZScale(const double scale) {
+			m_zscale = scale;
+			updateMatrices();
+		}
+
 		/** Get the cellgrid x-scaling
 		 *  @return The x-scale of cellgrid
 		 */
@@ -188,6 +208,11 @@ namespace FIFE {
 		 *  @return The y-scale of cellgrid
 		 */
 		const double getYScale() const { return m_yscale; }
+
+		/** Get the cellgrid z-scaling
+		 *  @return The z-scale of cellgrid
+		 */
+		const double getZScale() const { return m_zscale; }
 
 		/** Set the cellgrid rotation
 		 *  @param rotation The rotation of the cellgrid
@@ -229,6 +254,7 @@ namespace FIFE {
 		double m_zshift;
 		double m_xscale;
 		double m_yscale;
+		double m_zscale;
 		double m_rotation;
 		bool m_allow_diagonals;
 

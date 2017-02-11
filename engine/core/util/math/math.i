@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2010 by the FIFE team                              *
+ *   Copyright (C) 2005-2017 by the FIFE team                              *
  *   http://www.fifengine.net                                              *
  *   This file is part of FIFE.                                            *
  *                                                                         *
@@ -21,6 +21,7 @@
 %module fife
 
 %{
+#include "util/math/angles.h"
 #include "util/math/fife_math.h"
 %}
 
@@ -72,6 +73,11 @@ namespace FIFE {
 	};
 	
 	inline int32_t getAngleBetween(const Location& loc1, const Location& loc2);
+
+	int32_t getAngleBetween(const Location& loc1, const Location& loc2);
+	Location getFacing(const Location& loc, const int32_t angle);
+	int32_t getAngleBetween(const ExactModelCoordinate& emc1, const ExactModelCoordinate& emc2);
+	ExactModelCoordinate getFacing(const ExactModelCoordinate& emc, const int32_t angle);
 
 	typedef Math<float> Mathf;
 	typedef Math<double> Mathd;
